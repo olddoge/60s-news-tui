@@ -154,11 +154,11 @@ func TestApp_ResultDisplay(t *testing.T) {
 	// 模拟 curl 结果返回
 	curlMsg := app.CurlResultMsg{
 		Result: api.CurlResult{
-			URL:        "http://localhost:13205/v2/60s?encoding=json",
-			Stdout:     `{"code":200,"message":"success"}`,
-			ExitCode:   0,
-			Duration:   150 * time.Millisecond,
-			Cancelled:  false,
+			URL:       "http://localhost:13205/v2/60s?encoding=json",
+			Stdout:    `{"code":200,"message":"success"}`,
+			ExitCode:  0,
+			Duration:  150 * time.Millisecond,
+			Cancelled: false,
 		},
 	}
 	newModel, _ = updatedModel.Update(curlMsg)
