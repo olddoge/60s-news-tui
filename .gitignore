@@ -1,0 +1,26 @@
+# 编译产物
+endpoint-tui
+endpoint-tui-arm64
+*.exe
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 测试
+*.test
+*.out
+coverage.txt
+
+# Claude Code 本地配置
+.claude/
+
+# 临时文件
+*.tmp
