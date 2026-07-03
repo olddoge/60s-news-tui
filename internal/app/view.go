@@ -3,6 +3,7 @@ package app
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 	"unicode/utf8"
 
@@ -35,8 +36,12 @@ func (m Model) View() string {
 }
 
 func (m Model) viewLoading() string {
+	message := m.loadingMessage
+	if message == "" {
+		message = "Loading..."
+	}
 	return ui.ContainerStyle.Render(
-		ui.LoadingStyle.Render("Loading endpoint list..."),
+		ui.LoadingStyle.Render(message),
 	)
 }
 
@@ -192,6 +197,10 @@ func (m Model) viewSettings() string {
 	var b strings.Builder
 
 	b.WriteString(ui.RenderTitle("Settings"))
+	if m.config.BaseURL == "" {
+		b.WriteString("\n")
+		b.WriteString(ui.WarningStyle.Render("Configure a base URL before using Endpoint TUI. Example: http://127.0.0.1:8080"))
+	}
 	b.WriteString("\n")
 
 	b.WriteString(ui.LabelStyle.Render("Base URL:"))
@@ -237,7 +246,7 @@ func (m Model) viewError() string {
 
 	if m.loadErr != nil {
 		b.WriteString(ui.ErrorStyle.Render("Load failed: "))
-		b.WriteString(ui.ValueStyle.Render(m.loadErr.Error()))
+		b.WriteString(ui.ValueStyle.Render(safeErrorMessage(m.loadErr)))
 	}
 
 	b.WriteString(ui.RenderHelp([]string{
@@ -259,6 +268,17 @@ func formatEndpointLine(ep api.Endpoint, width int) string {
 
 	line := ui.PadRight(name, 20) + " " + path
 	return ui.Truncate(line, width)
+}
+
+func safeErrorMessage(err error) string {
+	if err == nil {
+		return ""
+	}
+	msg := err.Error()
+	msg = regexp.MustCompile(`https?://[^\s"]+`).ReplaceAllString(msg, "[endpoint service]")
+	msg = regexp.MustCompile(`\[[^\]]+\]:\d+`).ReplaceAllString(msg, "[address]")
+	msg = regexp.MustCompile(`\b([A-Za-z0-9.-]+):\d+\b`).ReplaceAllString(msg, "$1")
+	return msg
 }
 
 func formatResultContent(r api.CurlResult, encoding string) string {

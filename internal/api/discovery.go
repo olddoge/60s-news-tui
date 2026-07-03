@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -32,7 +33,7 @@ func FetchEndpoints(discoveryURL string) ([]Endpoint, error) {
 
 	resp, err := client.Get(discoveryURL)
 	if err != nil {
-		return nil, fmt.Errorf("failed to request endpoint list: %w", err)
+		return nil, errors.New("failed to request endpoint list: discovery service is unavailable")
 	}
 	defer resp.Body.Close()
 

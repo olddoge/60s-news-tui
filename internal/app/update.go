@@ -28,6 +28,25 @@ func executeCurlCmd(requestURL string, executor api.CommandExecutor) tea.Cmd {
 	}
 }
 
+func (m Model) startSelectedRequest() (Model, tea.Cmd) {
+	ep := m.SelectedEndpoint()
+	if ep == nil {
+		return m, nil
+	}
+	requestURL, err := urlutil.BuildURL(m.config.BaseURL, ep.Path, m.SelectedEncoding())
+	if err != nil {
+		m.loadErr = err
+		m.page = PageError
+		return m, nil
+	}
+	m.result = api.CurlResult{}
+	m.loading = true
+	m.loadingMessage = "Requesting endpoint..."
+	m.page = PageLoading
+	executor := api.NewCurlExecutor()
+	return m, executeCurlCmd(requestURL, executor)
+}
+
 // Update handles Bubble Tea messages.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -53,6 +72,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case EndpointsLoadedMsg:
 		m.loading = false
+		m.loadingMessage = ""
 		if msg.Error != nil {
 			m.loadErr = msg.Error
 			m.page = PageError
@@ -69,6 +89,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case CurlResultMsg:
+		m.loading = false
+		m.loadingMessage = ""
 		m.result = msg.Result
 		m.viewport.SetContent(formatResultContent(msg.Result, m.SelectedEncoding()))
 		m.viewport.GotoTop()
@@ -111,13 +133,12 @@ func (m Model) updateEndpointList(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.cursor++
 			}
 		case "enter":
-			if m.SelectedEndpoint() != nil {
-				m.page = PageEncodingSelect
-			}
+			return m.startSelectedRequest()
 		case "r":
 			m.loading = true
+			m.loadingMessage = "Loading endpoint list..."
 			m.page = PageLoading
-			return m, fetchEndpointsCmd(m.discoveryURL)
+			return m, fetchEndpointsCmd(m.endpointDiscoveryURL())
 		case "s":
 			m.settingsBaseURL.SetValue(m.config.BaseURL)
 			encIdx := 0
@@ -150,19 +171,7 @@ func (m Model) updateEncodingSelect(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.encodingCursor++
 			}
 		case "enter":
-			ep := m.SelectedEndpoint()
-			if ep == nil {
-				return m, nil
-			}
-			requestURL, err := urlutil.BuildURL(m.config.BaseURL, ep.Path, m.SelectedEncoding())
-			if err != nil {
-				m.loadErr = err
-				m.page = PageError
-				return m, nil
-			}
-			m.result = api.CurlResult{}
-			executor := api.NewCurlExecutor()
-			return m, executeCurlCmd(requestURL, executor)
+			return m.startSelectedRequest()
 		case "esc":
 			m.page = PageEndpointList
 			return m, nil
@@ -188,18 +197,7 @@ func (m Model) updateResult(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "end":
 			m.viewport.GotoBottom()
 		case "r":
-			ep := m.SelectedEndpoint()
-			if ep == nil {
-				return m, nil
-			}
-			requestURL, err := urlutil.BuildURL(m.config.BaseURL, ep.Path, m.SelectedEncoding())
-			if err != nil {
-				m.loadErr = err
-				m.page = PageError
-				return m, nil
-			}
-			executor := api.NewCurlExecutor()
-			return m, executeCurlCmd(requestURL, executor)
+			return m.startSelectedRequest()
 		case "b", "esc":
 			m.page = PageEndpointList
 			return m, nil
@@ -215,6 +213,10 @@ func (m Model) updateSettings(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "esc":
+			if m.config.BaseURL == "" {
+				m.settingsValidationError = "Base URL is required before using Endpoint TUI"
+				return m, nil
+			}
 			m.page = PageEndpointList
 			return m, nil
 		case "ctrl+s":
@@ -237,7 +239,10 @@ func (m Model) updateSettings(msg tea.Msg) (tea.Model, tea.Cmd) {
 					break
 				}
 			}
-			return m, nil
+			m.loading = true
+			m.loadingMessage = "Config saved. Loading endpoint list..."
+			m.page = PageLoading
+			return m, fetchEndpointsCmd(m.endpointDiscoveryURL())
 		case "up", "k":
 			if m.settingsEncodingCursor > 0 {
 				m.settingsEncodingCursor--
@@ -262,9 +267,10 @@ func (m Model) updateError(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "r":
 			m.loading = true
+			m.loadingMessage = "Loading endpoint list..."
 			m.loadErr = nil
 			m.page = PageLoading
-			return m, fetchEndpointsCmd(m.discoveryURL)
+			return m, fetchEndpointsCmd(m.endpointDiscoveryURL())
 		case "s":
 			m.settingsBaseURL.SetValue(m.config.BaseURL)
 			m.settingsSaved = false

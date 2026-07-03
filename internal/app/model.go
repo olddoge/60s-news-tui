@@ -35,8 +35,9 @@ type Model struct {
 	height int
 	ready  bool
 
-	loading bool
-	loadErr error
+	loading        bool
+	loadingMessage string
+	loadErr        error
 }
 
 // Encodings is the selectable response encoding list.
@@ -59,15 +60,25 @@ func NewModel(cfg config.Config, discoveryURL string) Model {
 		}
 	}
 
+	page := PageLoading
+	loading := true
+	loadingMessage := "Loading endpoint list..."
+	if cfg.BaseURL == "" {
+		page = PageSettings
+		loading = false
+		loadingMessage = ""
+	}
+
 	return Model{
-		page:                   PageLoading,
+		page:                   page,
 		encodings:              Encodings,
 		encodingCursor:         encIdx,
 		config:                 cfg,
 		discoveryURL:           discoveryURL,
 		settingsBaseURL:        ti,
 		settingsEncodingCursor: encIdx,
-		loading:                true,
+		loading:                loading,
+		loadingMessage:         loadingMessage,
 	}
 }
 
@@ -95,7 +106,22 @@ func (m Model) SettingsSelectedEncoding() string {
 	return m.encodings[m.settingsEncodingCursor]
 }
 
+func (m Model) endpointDiscoveryURL() string {
+	if m.config.BaseURL != "" && (m.discoveryURL == "" || m.discoveryURL == api.DefaultDiscoveryURL) {
+		return m.config.BaseURL
+	}
+	return m.discoveryURL
+}
+
+// EndpointDiscoveryURL returns the discovery URL used to load endpoint lists.
+func (m Model) EndpointDiscoveryURL() string {
+	return m.endpointDiscoveryURL()
+}
+
 // Init starts loading endpoints.
 func (m Model) Init() tea.Cmd {
-	return fetchEndpointsCmd(m.discoveryURL)
+	if m.config.BaseURL == "" {
+		return nil
+	}
+	return fetchEndpointsCmd(m.endpointDiscoveryURL())
 }
