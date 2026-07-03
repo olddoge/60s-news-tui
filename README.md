@@ -1,123 +1,106 @@
-# Endpoint TUI
+# 60s TUI
 
-终端接口调试工具 —— 在 Debian Linux 服务器上通过 TUI 浏览和调试 API 接口。
+基于 [60s API](https://github.com/vikiboss/60s) 的终端新闻浏览工具。
+
+[60s](https://github.com/vikiboss/60s) 是一个汇聚每日精选新闻的开源项目，提供涵盖科技、社会、娱乐、财经等数十个类别的 API 接口。60s TUI 让你在终端中浏览和阅读这些内容，无需离开命令行。
 
 ## 功能
 
-- 从发现服务自动获取接口列表
-- 终端中浏览、选择接口
-- 配置根路径，自动拼接完整请求地址
-- 选择返回格式（JSON / Text / Markdown）
-- 通过系统 `curl` 发送 GET 请求
-- 请求结果支持滚动查看
-- JSON 返回自动格式化
-- 配置持久化保存
+- 自动获取 60s API 的全部可用接口
+- 终端中浏览 70+ 个新闻/资讯分类
+- 支持 JSON / Text / Markdown 三种输出格式
+- 终端内直接查看新闻内容，支持滚动翻页
+- JSON 自动格式化，Markdown 保留原始排版
+- 根路径可配置，配置持久化保存
 
-## 安装
+## 快速开始
 
-### 依赖
+### 从 Release 下载
 
-- Go 1.21+
-- curl
+在 [Releases](https://github.com/your-username/endpoint-tui/releases) 页面下载对应平台的二进制文件。
+
+```bash
+# Linux AMD64
+sudo install -m 755 endpoint-tui-linux-amd64 /usr/local/bin/60s
+
+# 运行
+60s
+```
+
+### 从源码编译
+
+**依赖：** Go 1.21+、curl
 
 ```bash
 # Debian
 sudo apt update && sudo apt install -y curl
-```
 
-### 编译
-
-```bash
-# 本地编译
+# 编译
 go mod tidy
-go build -o endpoint-tui .
+go build -o 60s .
 
-# Linux AMD64 交叉编译
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
-  -trimpath \
-  -ldflags="-s -w" \
-  -o endpoint-tui .
-
-# Linux ARM64 交叉编译
-CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build \
-  -trimpath \
-  -ldflags="-s -w" \
-  -o endpoint-tui-arm64 .
+# 运行
+./60s
 ```
 
-### 部署
+## 使用方式
 
 ```bash
-sudo install -m 755 endpoint-tui /usr/local/bin/endpoint-tui
+# 基本使用
+60s
+
+# 指定配置文件
+60s --config /path/to/config.json
+
+# 自定义发现服务地址
+60s --discovery-url http://your-server:13205
 ```
-
-### 运行
-
-```bash
-endpoint-tui
-```
-
-## 命令行参数
-
-```
-用法:
-  endpoint-tui [选项]
-
-选项:
-  --config FILE        配置文件路径 (默认: ~/.config/endpoint-tui/config.json)
-  --discovery-url URL  接口发现服务地址 (可通过环境变量 ENDPOINT_DISCOVERY_URL 设置)
-  --version            显示版本号
-  --help               显示帮助信息
-```
-
-## 操作方式
 
 ### 接口列表页
 
-| 按键 | 功能 |
-|------|------|
-| `↑` / `k` | 选择上一项 |
-| `↓` / `j` | 选择下一项 |
-| `Enter` | 打开请求配置页面 |
-| `r` | 重新获取接口列表 |
-| `s` | 打开全局设置 |
-| `q` | 退出程序 |
-| `Ctrl+C` | 强制退出程序 |
-
-### encoding 选择页
+终端展示 60s 提供的所有接口，`↑` `↓` 选择感兴趣的新闻类别：
 
 | 按键 | 功能 |
 |------|------|
 | `↑` / `k` | 选择上一项 |
 | `↓` / `j` | 选择下一项 |
-| `Enter` | 执行请求 |
-| `Esc` | 返回接口列表 |
+| `Enter` | 选择接口，进入格式选择 |
+| `r` | 刷新接口列表 |
+| `s` | 打开设置 |
+| `q` | 退出 |
 
-### 请求结果页
+### 格式选择
+
+选择输出格式（JSON / Text / Markdown）：
 
 | 按键 | 功能 |
 |------|------|
-| `↑` / `k` | 向上滚动 |
-| `↓` / `j` | 向下滚动 |
-| `PgUp` | 向上翻页 |
-| `PgDn` | 向下翻页 |
-| `Home` | 跳到顶部 |
-| `End` | 跳到底部 |
+| `↑` / `↓` | 切换格式 |
+| `Enter` | 发起请求 |
+| `Esc` | 返回列表 |
+
+### 结果查看
+
+请求结果支持完整滚动阅读：
+
+| 按键 | 功能 |
+|------|------|
+| `↑` `↓` / `PgUp` `PgDn` | 滚动 |
+| `Home` / `End` | 跳到顶部/底部 |
 | `r` | 重新请求 |
-| `b` / `Esc` | 返回接口列表 |
-| `q` | 退出程序 |
+| `b` / `Esc` | 返回列表 |
 
-### 设置页
+### 设置
 
 | 按键 | 功能 |
 |------|------|
 | `↑` / `↓` | 选择默认格式 |
-| `Ctrl+S` | 保存设置 |
-| `Esc` | 取消并返回 |
+| `Ctrl+S` | 保存 |
+| `Esc` | 取消 |
 
-## 配置文件
+## 配置
 
-配置文件位于 `~/.config/endpoint-tui/config.json`：
+配置文件 `~/.config/endpoint-tui/config.json`：
 
 ```json
 {
@@ -126,49 +109,50 @@ endpoint-tui
 }
 ```
 
+### 环境变量
+
+| 变量 | 说明 |
+|------|------|
+| `ENDPOINT_DISCOVERY_URL` | 接口发现服务地址 |
+| `NO_COLOR` | 设为任意值禁用颜色输出 |
+
+## 技术栈
+
+- 语言：Go
+- TUI 框架：[Bubble Tea](https://github.com/charmbracelet/bubbletea) + [Bubbles](https://github.com/charmbracelet/bubbles) + [Lip Gloss](https://github.com/charmbracelet/lipgloss)
+- HTTP 请求：系统 `curl`（安全沙箱调用）
+
 ## 项目结构
 
 ```
-endpoint-tui/
-├── main.go                 # 程序入口
-├── cmd/
-│   └── root.go             # 命令行参数解析
+60s-tui/
+├── main.go              # 入口
+├── cmd/root.go          # CLI 参数
 ├── internal/
-│   ├── app/                # Bubble Tea Model/Update/View
-│   │   ├── model.go
-│   │   ├── update.go
-│   │   ├── view.go
-│   │   └── messages.go
-│   ├── api/                # 接口发现、解析、curl 调用
-│   │   ├── discovery.go
-│   │   ├── parser.go
-│   │   └── request.go
-│   ├── config/             # 配置文件读写
-│   │   └── config.go
-│   ├── ui/                 # 样式定义
-│   │   └── styles.go
-│   └── urlutil/            # URL 拼接工具
-│       └── url.go
-└── tests/                  # 单元测试
-    ├── url_test.go
-    ├── endpoint_parser_test.go
-    ├── config_test.go
-    └── request_test.go
+│   ├── app/             # Bubble Tea 页面模型
+│   ├── api/             # 接口发现、解析、curl 调用
+│   ├── config/          # 配置管理
+│   ├── ui/              # 终端样式
+│   └── urlutil/         # URL 安全拼接
+└── tests/               # 47 个单元测试
 ```
 
-## 测试
+## 开发
 
 ```bash
+# 运行测试
 go test ./...
+
+# 静态检查
 go vet ./...
+
+# 格式化
+gofmt -w .
 ```
 
-## 安全说明
+## 相关项目
 
-- 使用 `exec.CommandContext` 执行 curl，不通过 shell 拼接命令
-- 根路径只允许 HTTP/HTTPS
-- 配置文件权限为 0600
-- 自动过滤返回内容中的 ANSI 转义序列
+- [60s](https://github.com/vikiboss/60s) —— 每日精选新闻 API
 
 ## 许可证
 
