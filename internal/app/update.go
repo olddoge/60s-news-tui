@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"unicode/utf8"
 
 	"endpoint-tui/internal/api"
 	"endpoint-tui/internal/config"
@@ -47,6 +48,39 @@ func (m Model) startSelectedRequest() (Model, tea.Cmd) {
 	return m, executeCurlCmd(requestURL, executor)
 }
 
+func (m Model) saveSettings() (Model, tea.Cmd) {
+	baseURL, err := config.ValidateBaseURL(m.settingsBaseURL.Value())
+	if err != nil {
+		m.settingsValidationError = err.Error()
+		return m, nil
+	}
+	m.config.BaseURL = baseURL
+	m.config.DefaultEncoding = m.SettingsSelectedEncoding()
+	m.config.Language = m.SettingsSelectedLanguage()
+	if err := config.Save(m.config); err != nil {
+		m.settingsValidationError = "save failed: " + err.Error()
+		return m, nil
+	}
+	m.settingsSaved = true
+	m.settingsValidationError = ""
+	for i, e := range m.encodings {
+		if e == m.config.DefaultEncoding {
+			m.encodingCursor = i
+			break
+		}
+	}
+	for i, lang := range m.languages {
+		if lang == m.config.Language {
+			m.languageCursor = i
+			break
+		}
+	}
+	m.loading = true
+	m.loadingMessage = "Config saved. Loading endpoint list..."
+	m.page = PageLoading
+	return m, fetchEndpointsCmd(m.endpointDiscoveryURL())
+}
+
 // Update handles Bubble Tea messages.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -65,9 +99,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c":
 			return m, tea.Quit
 		case "q":
-			if m.page == PageEndpointList || m.page == PageError {
-				return m, tea.Quit
-			}
+			return m, tea.Quit
 		}
 
 	case EndpointsLoadedMsg:
@@ -123,17 +155,50 @@ func (m Model) updateLoading(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m Model) updateEndpointList(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		if m.searching {
+			switch msg.String() {
+			case "up", "k":
+				if m.cursor > 0 {
+					m.cursor--
+				}
+			case "down", "j":
+				if m.cursor < len(m.filteredEndpointIndexes())-1 {
+					m.cursor++
+				}
+			case "esc":
+				m.searching = false
+				m.search = ""
+				m.cursor = 0
+			case "enter":
+				m.searching = false
+			case "backspace":
+				if m.search != "" {
+					_, size := utf8.DecodeLastRuneInString(m.search)
+					m.search = m.search[:len(m.search)-size]
+					m.cursor = 0
+				}
+			default:
+				if len(msg.Runes) > 0 {
+					m.search += string(msg.Runes)
+					m.cursor = 0
+				}
+			}
+			return m, nil
+		}
+
 		switch msg.String() {
 		case "up", "k":
 			if m.cursor > 0 {
 				m.cursor--
 			}
 		case "down", "j":
-			if m.cursor < len(m.endpoints)-1 {
+			if m.cursor < len(m.filteredEndpointIndexes())-1 {
 				m.cursor++
 			}
 		case "enter":
 			return m.startSelectedRequest()
+		case "/":
+			m.searching = true
 		case "r":
 			m.loading = true
 			m.loadingMessage = "Loading endpoint list..."
@@ -149,6 +214,15 @@ func (m Model) updateEndpointList(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 			m.settingsEncodingCursor = encIdx
+			langIdx := 0
+			for i, lang := range m.languages {
+				if lang == m.config.Language {
+					langIdx = i
+					break
+				}
+			}
+			m.settingsLanguageCursor = langIdx
+			m.settingsOptionCursor = 0
 			m.settingsSaved = false
 			m.settingsValidationError = ""
 			m.page = PageSettings
@@ -219,37 +293,25 @@ func (m Model) updateSettings(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.page = PageEndpointList
 			return m, nil
-		case "ctrl+s":
-			baseURL, err := config.ValidateBaseURL(m.settingsBaseURL.Value())
-			if err != nil {
-				m.settingsValidationError = err.Error()
-				return m, nil
-			}
-			m.config.BaseURL = baseURL
-			m.config.DefaultEncoding = m.SettingsSelectedEncoding()
-			if err := config.Save(m.config); err != nil {
-				m.settingsValidationError = "save failed: " + err.Error()
-				return m, nil
-			}
-			m.settingsSaved = true
-			m.settingsValidationError = ""
-			for i, e := range m.encodings {
-				if e == m.config.DefaultEncoding {
-					m.encodingCursor = i
-					break
-				}
-			}
-			m.loading = true
-			m.loadingMessage = "Config saved. Loading endpoint list..."
-			m.page = PageLoading
-			return m, fetchEndpointsCmd(m.endpointDiscoveryURL())
+		case "ctrl+s", "enter":
+			return m.saveSettings()
+		case "tab":
+			m.settingsOptionCursor = (m.settingsOptionCursor + 1) % 2
 		case "up", "k":
-			if m.settingsEncodingCursor > 0 {
-				m.settingsEncodingCursor--
+			if m.settingsOptionCursor == 0 {
+				if m.settingsEncodingCursor > 0 {
+					m.settingsEncodingCursor--
+				}
+			} else if m.settingsLanguageCursor > 0 {
+				m.settingsLanguageCursor--
 			}
 		case "down", "j":
-			if m.settingsEncodingCursor < len(m.encodings)-1 {
-				m.settingsEncodingCursor++
+			if m.settingsOptionCursor == 0 {
+				if m.settingsEncodingCursor < len(m.encodings)-1 {
+					m.settingsEncodingCursor++
+				}
+			} else if m.settingsLanguageCursor < len(m.languages)-1 {
+				m.settingsLanguageCursor++
 			}
 		default:
 			m.settingsSaved = false

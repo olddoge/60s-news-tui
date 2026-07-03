@@ -14,6 +14,7 @@ import (
 type Config struct {
 	BaseURL         string `json:"base_url"`
 	DefaultEncoding string `json:"default_encoding"`
+	Language        string `json:"language"`
 }
 
 // DefaultConfig returns default settings.
@@ -21,6 +22,7 @@ func DefaultConfig() Config {
 	return Config{
 		BaseURL:         "",
 		DefaultEncoding: "json",
+		Language:        "en",
 	}
 }
 
@@ -28,6 +30,11 @@ var validEncodings = map[string]bool{
 	"json":     true,
 	"text":     true,
 	"markdown": true,
+}
+
+var validLanguages = map[string]bool{
+	"en": true,
+	"zh": true,
 }
 
 func configDir() (string, error) {
@@ -85,6 +92,9 @@ func LoadFromPath(path string) (Config, error) {
 	if !validEncodings[cfg.DefaultEncoding] {
 		cfg.DefaultEncoding = "json"
 	}
+	if !validLanguages[cfg.Language] {
+		cfg.Language = "en"
+	}
 
 	return cfg, nil
 }
@@ -93,6 +103,9 @@ func LoadFromPath(path string) (Config, error) {
 func Save(cfg Config) error {
 	if !validEncodings[cfg.DefaultEncoding] {
 		cfg.DefaultEncoding = "json"
+	}
+	if !validLanguages[cfg.Language] {
+		cfg.Language = "en"
 	}
 
 	cfg.BaseURL = strings.TrimSpace(cfg.BaseURL)

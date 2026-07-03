@@ -16,6 +16,9 @@ func TestDefaultConfig(t *testing.T) {
 	if cfg.DefaultEncoding != "json" {
 		t.Errorf("expected json DefaultEncoding, got %s", cfg.DefaultEncoding)
 	}
+	if cfg.Language != "en" {
+		t.Errorf("expected en Language, got %s", cfg.Language)
+	}
 }
 
 func TestLoad_FileNotExist(t *testing.T) {
@@ -32,7 +35,7 @@ func TestLoad_NormalFile(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "config.json")
 
-	content := `{"base_url": "http://example.com:8080", "default_encoding": "text"}`
+	content := `{"base_url": "http://example.com:8080", "default_encoding": "text", "language": "zh"}`
 	if err := os.WriteFile(path, []byte(content), 0600); err != nil {
 		t.Fatal(err)
 	}
@@ -46,6 +49,9 @@ func TestLoad_NormalFile(t *testing.T) {
 	}
 	if cfg.DefaultEncoding != "text" {
 		t.Errorf("expected text, got %s", cfg.DefaultEncoding)
+	}
+	if cfg.Language != "zh" {
+		t.Errorf("expected zh, got %s", cfg.Language)
 	}
 }
 
@@ -79,6 +85,24 @@ func TestLoad_InvalidEncoding(t *testing.T) {
 	// 非法 encoding 应回退到 json
 	if cfg.DefaultEncoding != "json" {
 		t.Errorf("expected json fallback, got %s", cfg.DefaultEncoding)
+	}
+}
+
+func TestLoad_InvalidLanguage(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.json")
+
+	content := `{"base_url": "http://example.com", "default_encoding": "json", "language": "de"}`
+	if err := os.WriteFile(path, []byte(content), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := config.LoadFromPath(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.Language != "en" {
+		t.Errorf("expected en fallback, got %s", cfg.Language)
 	}
 }
 

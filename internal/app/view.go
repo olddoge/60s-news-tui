@@ -36,32 +36,41 @@ func (m Model) View() string {
 }
 
 func (m Model) viewLoading() string {
+	var b strings.Builder
 	message := m.loadingMessage
 	if message == "" {
 		message = "Loading..."
 	}
-	return ui.ContainerStyle.Render(
-		ui.LoadingStyle.Render(message),
-	)
+	b.WriteString(m.brandHeader())
+	b.WriteString(ui.LoadingStyle.Render(message))
+	return ui.ContainerStyle.Render(b.String())
 }
 
 func (m Model) viewEndpointList() string {
 	var b strings.Builder
 
-	b.WriteString(ui.RenderTitle("Endpoint TUI"))
-	b.WriteString("\n")
+	b.WriteString(m.brandHeader())
 
 	baseURL := m.config.BaseURL
 	if baseURL == "" {
-		baseURL = "(not configured)"
+		baseURL = m.text("(not configured)", "（未配置）")
 	}
-	b.WriteString(ui.InfoStyle.Render("Base URL: " + baseURL))
+	b.WriteString(ui.InfoStyle.Render(m.text("Endpoint: ", "接口地址：") + baseURL))
 	b.WriteString("\n\n")
 
-	b.WriteString(ui.InfoStyle.Render("Endpoints:"))
+	b.WriteString(ui.InfoStyle.Render(m.text("Endpoints:", "接口列表：")))
 	b.WriteString("\n\n")
 
-	listHeight := m.height - 10
+	if m.searching || m.search != "" {
+		prefix := m.text("Search: ", "搜索：")
+		if m.searching {
+			prefix = "/ " + prefix
+		}
+		b.WriteString(ui.InfoStyle.Render(prefix + m.search))
+		b.WriteString("\n\n")
+	}
+
+	listHeight := m.height - 13
 	if listHeight < 1 {
 		listHeight = 1
 	}
@@ -71,30 +80,45 @@ func (m Model) viewEndpointList() string {
 		start = m.cursor - listHeight + 1
 	}
 
-	for i := start; i < len(m.endpoints) && i < start+listHeight; i++ {
-		ep := m.endpoints[i]
+	indexes := m.filteredEndpointIndexes()
+	if len(indexes) == 0 {
+		b.WriteString(ui.WarningStyle.Render(m.text("No matching endpoints", "未找到匹配接口")))
+		b.WriteString("\n")
+	}
+
+	for i := start; i < len(indexes) && i < start+listHeight; i++ {
+		ep := m.endpoints[indexes[i]]
 		if i == m.cursor {
-			b.WriteString(ui.SelectedStyle.Render("> " + formatEndpointLine(ep, m.width-4)))
+			b.WriteString(ui.SelectedStyle.Render("> " + formatEndpointLine(i+1, ep, m.width-4)))
 		} else {
-			b.WriteString(ui.NormalStyle.Render("  " + formatEndpointLine(ep, m.width-4)))
+			b.WriteString(ui.NormalStyle.Render("  " + formatEndpointLine(i+1, ep, m.width-4)))
 		}
 		b.WriteString("\n")
 	}
 
-	if len(m.endpoints) > listHeight {
+	if len(indexes) > listHeight {
 		b.WriteString(ui.HelpStyle.Render(
-			fmt.Sprintf("  ... %d/%d", m.cursor+1, len(m.endpoints)),
+			fmt.Sprintf("  ... %d/%d", m.cursor+1, len(indexes)),
 		))
 		b.WriteString("\n")
 	}
 
-	b.WriteString(ui.RenderHelp([]string{
-		"up/down select",
-		"Enter request",
-		"s settings",
-		"r refresh",
-		"q quit",
-	}))
+	if m.searching {
+		b.WriteString(ui.RenderHelp([]string{
+			m.text("type search", "输入搜索"),
+			m.text("Enter finish", "Enter 完成"),
+			m.text("Esc clear", "Esc 清空"),
+		}))
+	} else {
+		b.WriteString(ui.RenderHelp([]string{
+			m.text("up/down select", "上/下 选择"),
+			m.text("/ search", "/ 搜索"),
+			m.text("Enter request", "Enter 请求"),
+			m.text("s settings", "s 设置"),
+			m.text("r refresh", "r 刷新"),
+			m.text("q quit", "q 退出"),
+		}))
+	}
 
 	return ui.ContainerStyle.Render(b.String())
 }
@@ -108,11 +132,12 @@ func (m Model) viewEncodingSelect() string {
 		epPath = ep.Path
 	}
 
-	b.WriteString(ui.RenderTitle("Request Options"))
+	b.WriteString(m.brandHeader())
+	b.WriteString(ui.RenderTitle(m.text("Request Options", "请求选项")))
 	b.WriteString("\n")
-	b.WriteString(ui.InfoStyle.Render("Endpoint: " + epPath))
+	b.WriteString(ui.InfoStyle.Render(m.text("Endpoint: ", "接口：") + epPath))
 	b.WriteString("\n\n")
-	b.WriteString(ui.InfoStyle.Render("Select response format:"))
+	b.WriteString(ui.InfoStyle.Render(m.text("Select response format:", "请选择返回格式：")))
 	b.WriteString("\n\n")
 
 	for i, enc := range m.encodings {
@@ -125,9 +150,9 @@ func (m Model) viewEncodingSelect() string {
 	}
 
 	b.WriteString(ui.RenderHelp([]string{
-		"up/down select",
-		"Enter run",
-		"Esc back",
+		m.text("up/down select", "上/下 选择"),
+		m.text("Enter run", "Enter 执行"),
+		m.text("Esc back", "Esc 返回"),
 	}))
 
 	return ui.ContainerStyle.Render(b.String())
@@ -143,32 +168,33 @@ func (m Model) viewResult() string {
 		epPath = ep.Name
 	}
 
-	b.WriteString(ui.RenderTitle("Request Complete"))
+	b.WriteString(m.brandHeader())
+	b.WriteString(ui.RenderTitle(m.text("Request Complete", "请求完成")))
 	b.WriteString("\n")
 
 	infoLines := []string{
-		ui.LabelStyle.Render("Endpoint:") + ui.ValueStyle.Render(epPath),
-		ui.LabelStyle.Render("Format:") + ui.ValueStyle.Render(m.SelectedEncoding()),
-		ui.LabelStyle.Render("URL:") + ui.ValueStyle.Render(ui.Truncate(r.URL, m.width-10)),
+		ui.LabelStyle.Render(m.text("Endpoint:", "接口：")) + ui.ValueStyle.Render(epPath),
+		ui.LabelStyle.Render(m.text("Format:", "格式：")) + ui.ValueStyle.Render(m.SelectedEncoding()),
+		ui.LabelStyle.Render(m.text("URL:", "地址：")) + ui.ValueStyle.Render(ui.Truncate(r.URL, m.width-10)),
 	}
 
 	if r.Cancelled {
 		infoLines = append(infoLines,
-			ui.LabelStyle.Render("Status:")+ui.WarningStyle.Render("cancelled"),
+			ui.LabelStyle.Render(m.text("Status:", "状态："))+ui.WarningStyle.Render(m.text("cancelled", "已取消")),
 		)
 	} else if r.Error != nil || r.ExitCode != 0 {
 		infoLines = append(infoLines,
-			ui.LabelStyle.Render("Status:")+ui.ErrorStyle.Render(fmt.Sprintf("failed (exit=%d)", r.ExitCode)),
+			ui.LabelStyle.Render(m.text("Status:", "状态："))+ui.ErrorStyle.Render(fmt.Sprintf(m.text("failed (exit=%d)", "失败（退出码=%d）"), r.ExitCode)),
 		)
 		if r.Stderr != "" {
 			infoLines = append(infoLines,
-				ui.LabelStyle.Render("Error:")+ui.ErrorStyle.Render(ui.Truncate(r.Stderr, m.width-10)),
+				ui.LabelStyle.Render(m.text("Error:", "错误："))+ui.ErrorStyle.Render(ui.Truncate(r.Stderr, m.width-10)),
 			)
 		}
 	} else {
 		infoLines = append(infoLines,
-			ui.LabelStyle.Render("Duration:")+ui.ValueStyle.Render(r.Duration.Truncate(0).String()),
-			ui.LabelStyle.Render("Status:")+ui.SuccessStyle.Render("success"),
+			ui.LabelStyle.Render(m.text("Duration:", "耗时："))+ui.ValueStyle.Render(r.Duration.Truncate(0).String()),
+			ui.LabelStyle.Render(m.text("Status:", "状态："))+ui.SuccessStyle.Render(m.text("success", "成功")),
 		)
 	}
 
@@ -178,16 +204,16 @@ func (m Model) viewResult() string {
 	}
 
 	b.WriteString("\n")
-	b.WriteString(ui.InfoStyle.Render("Response:"))
+	b.WriteString(ui.InfoStyle.Render(m.text("Response:", "返回内容：")))
 	b.WriteString("\n\n")
 	b.WriteString(m.viewport.View())
 
 	b.WriteString(ui.RenderHelp([]string{
-		"up/down/PgUp/PgDn scroll",
-		"Home/End jump",
-		"r retry",
-		"b/Esc back",
-		"q quit",
+		m.text("up/down/PgUp/PgDn scroll", "上/下/PgUp/PgDn 滚动"),
+		m.text("Home/End jump", "Home/End 跳转"),
+		m.text("r retry", "r 重试"),
+		m.text("b/Esc back", "b/Esc 返回"),
+		m.text("q quit", "q 退出"),
 	}))
 
 	return ui.ContainerStyle.Render(b.String())
@@ -196,25 +222,42 @@ func (m Model) viewResult() string {
 func (m Model) viewSettings() string {
 	var b strings.Builder
 
-	b.WriteString(ui.RenderTitle("Settings"))
+	b.WriteString(m.brandHeader())
+	b.WriteString(ui.RenderTitle(m.text("Settings", "设置")))
 	if m.config.BaseURL == "" {
 		b.WriteString("\n")
-		b.WriteString(ui.WarningStyle.Render("Configure a base URL before using Endpoint TUI. Example: http://127.0.0.1:8080"))
+		b.WriteString(ui.WarningStyle.Render(m.text(
+			"Configure a base URL before using Endpoint TUI. Example: http://127.0.0.1:8080",
+			"使用前请配置接口地址。示例：http://127.0.0.1:8080",
+		)))
 	}
 	b.WriteString("\n")
 
-	b.WriteString(ui.LabelStyle.Render("Base URL:"))
+	b.WriteString(ui.LabelStyle.Render(m.text("Base URL:", "接口地址：")))
 	b.WriteString("\n")
 	b.WriteString(m.settingsBaseURL.View())
 	b.WriteString("\n\n")
 
-	b.WriteString(ui.LabelStyle.Render("Default:"))
+	b.WriteString(ui.LabelStyle.Render(m.text("Default format:", "默认格式：")))
 	b.WriteString("\n")
 	for i, enc := range m.encodings {
-		if i == m.settingsEncodingCursor {
+		if m.settingsOptionCursor == 0 && i == m.settingsEncodingCursor {
 			b.WriteString(ui.SelectedStyle.Render("> " + enc))
 		} else {
 			b.WriteString(ui.NormalStyle.Render("  " + enc))
+		}
+		b.WriteString("\n")
+	}
+	b.WriteString("\n")
+
+	b.WriteString(ui.LabelStyle.Render(m.text("Language:", "语言：")))
+	b.WriteString("\n")
+	for i, lang := range m.languages {
+		label := languageLabel(lang)
+		if m.settingsOptionCursor == 1 && i == m.settingsLanguageCursor {
+			b.WriteString(ui.SelectedStyle.Render("> " + label))
+		} else {
+			b.WriteString(ui.NormalStyle.Render("  " + label))
 		}
 		b.WriteString("\n")
 	}
@@ -226,13 +269,14 @@ func (m Model) viewSettings() string {
 
 	if m.settingsSaved {
 		b.WriteString("\n")
-		b.WriteString(ui.SuccessStyle.Render("Config saved"))
+		b.WriteString(ui.SuccessStyle.Render(m.text("Config saved", "配置已保存")))
 	}
 
 	b.WriteString(ui.RenderHelp([]string{
-		"up/down select format",
-		"Ctrl+S save",
-		"Esc cancel",
+		m.text("Tab switch option", "Tab 切换选项"),
+		m.text("up/down select", "上/下 选择"),
+		m.text("Enter/Ctrl+S save", "Enter/Ctrl+S 保存"),
+		m.text("Esc cancel", "Esc 取消"),
 	}))
 
 	return ui.ContainerStyle.Render(b.String())
@@ -241,33 +285,68 @@ func (m Model) viewSettings() string {
 func (m Model) viewError() string {
 	var b strings.Builder
 
-	b.WriteString(ui.RenderTitle("Endpoint TUI"))
+	b.WriteString(m.brandHeader())
+	b.WriteString(ui.RenderTitle(m.text("Endpoint TUI", "60 秒新闻终端")))
 	b.WriteString("\n")
 
 	if m.loadErr != nil {
-		b.WriteString(ui.ErrorStyle.Render("Load failed: "))
+		b.WriteString(ui.ErrorStyle.Render(m.text("Load failed: ", "加载失败：")))
 		b.WriteString(ui.ValueStyle.Render(safeErrorMessage(m.loadErr)))
 	}
 
 	b.WriteString(ui.RenderHelp([]string{
-		"r reload",
-		"s settings",
-		"q quit",
+		m.text("r reload", "r 重新加载"),
+		m.text("s settings", "s 设置"),
+		m.text("q quit", "q 退出"),
 	}))
 
 	return ui.ContainerStyle.Render(b.String())
 }
 
-func formatEndpointLine(ep api.Endpoint, width int) string {
+func formatEndpointLine(number int, ep api.Endpoint, width int) string {
 	path := ep.Path
 	name := ep.Name
+	prefix := fmt.Sprintf("%d. ", number)
 
 	if name == path {
-		return ui.Truncate(path, width)
+		return ui.Truncate(prefix+path, width)
 	}
 
-	line := ui.PadRight(name, 20) + " " + path
+	line := prefix + ui.PadRight(name, 20) + " " + path
 	return ui.Truncate(line, width)
+}
+
+func (m Model) text(en, zh string) string {
+	if m.config.Language == "zh" {
+		return zh
+	}
+	return en
+}
+
+func (m Model) brandHeader() string {
+	var b strings.Builder
+	b.WriteString(ui.WarningStyle.Render(m.text(
+		"📰 Understand the world in 60 seconds",
+		"📰 读懂世界 · 每天 60 秒读懂世界",
+	)))
+	b.WriteString("\n")
+	b.WriteString(ui.InfoStyle.Render(m.text(
+		"✨ Daily curated news for major world events",
+		"✨ 获取每日精选新闻，快速了解世界大事",
+	)))
+	b.WriteString("\n")
+	b.WriteString(ui.RenderTitle(m.text("🌍 Endpoint TUI", "🌍 60 秒新闻终端")))
+	b.WriteString("\n\n")
+	return b.String()
+}
+
+func languageLabel(lang string) string {
+	switch lang {
+	case "zh":
+		return "中文"
+	default:
+		return "English"
+	}
 }
 
 func safeErrorMessage(err error) string {

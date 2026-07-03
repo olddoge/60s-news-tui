@@ -46,6 +46,133 @@ func TestApp_EndpointListNavigation(t *testing.T) {
 	}
 }
 
+func TestApp_ChineseMenuShowsDescriptionAndNumberedList(t *testing.T) {
+	cfg := config.Config{
+		BaseURL:         "http://localhost:13205",
+		DefaultEncoding: "json",
+		Language:        "zh",
+	}
+
+	m := app.NewModel(cfg, api.GetDiscoveryURL())
+	m.Update(tea.WindowSizeMsg{Width: 100, Height: 30})
+	endpoints := []api.Endpoint{
+		{Name: "/v2/60s", Path: "/v2/60s"},
+		{Name: "/v2/answer", Path: "/v2/answer"},
+	}
+	newModel, _ := m.Update(app.EndpointsLoadedMsg{Endpoints: endpoints})
+	updatedModel := newModel.(app.Model)
+	newModel, _ = updatedModel.Update(tea.WindowSizeMsg{Width: 100, Height: 30})
+	updatedModel = newModel.(app.Model)
+	view := updatedModel.View()
+
+	if !strings.Contains(view, "📰 读懂世界") {
+		t.Fatalf("expected Chinese description, got %q", view)
+	}
+	if !strings.Contains(view, "✨ 获取每日精选新闻") {
+		t.Fatalf("expected second Chinese description line, got %q", view)
+	}
+	if strings.Index(view, "📰 读懂世界") > strings.Index(view, "接口地址") {
+		t.Fatalf("expected description to render before endpoint list content, got %q", view)
+	}
+	if !strings.Contains(view, "1. /v2/60s") {
+		t.Fatalf("expected numbered endpoint list, got %q", view)
+	}
+}
+
+func TestApp_BrandDescriptionShowsOnSettingsAndResult(t *testing.T) {
+	cfg := config.Config{
+		BaseURL:         "http://localhost:13205",
+		DefaultEncoding: "json",
+		Language:        "zh",
+	}
+
+	m := app.NewModel(cfg, api.GetDiscoveryURL())
+	newModel, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 30})
+	m = newModel.(app.Model)
+	newModel, _ = m.Update(app.EndpointsLoadedMsg{Endpoints: []api.Endpoint{{Name: "60s", Path: "/v2/60s"}}})
+	m = newModel.(app.Model)
+	newModel, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'s'}})
+	m = newModel.(app.Model)
+
+	settingsView := m.View()
+	if !strings.Contains(settingsView, "📰 读懂世界") {
+		t.Fatalf("expected brand description on settings page, got %q", settingsView)
+	}
+
+	newModel, _ = m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	m = newModel.(app.Model)
+	newModel, _ = m.Update(app.CurlResultMsg{Result: api.CurlResult{URL: "http://localhost:13205/v2/60s?encoding=json", Stdout: `{}`, ExitCode: 0}})
+	m = newModel.(app.Model)
+
+	resultView := m.View()
+	if !strings.Contains(resultView, "📰 读懂世界") {
+		t.Fatalf("expected brand description on result page, got %q", resultView)
+	}
+}
+
+func TestApp_SearchFiltersEndpointList(t *testing.T) {
+	cfg := config.Config{
+		BaseURL:         "http://localhost:13205",
+		DefaultEncoding: "json",
+	}
+
+	m := app.NewModel(cfg, api.GetDiscoveryURL())
+	endpoints := []api.Endpoint{
+		{Name: "news", Path: "/v2/60s"},
+		{Name: "answer", Path: "/v2/answer"},
+	}
+	newModel, _ := m.Update(app.EndpointsLoadedMsg{Endpoints: endpoints})
+	updatedModel := newModel.(app.Model)
+	newModel, _ = updatedModel.Update(tea.WindowSizeMsg{Width: 100, Height: 30})
+	updatedModel = newModel.(app.Model)
+
+	newModel, _ = updatedModel.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
+	updatedModel = newModel.(app.Model)
+	for _, r := range "answer" {
+		newModel, _ = updatedModel.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		updatedModel = newModel.(app.Model)
+	}
+	view := updatedModel.View()
+
+	if strings.Contains(view, "/v2/60s") {
+		t.Fatalf("expected search to hide unmatched endpoint, got %q", view)
+	}
+	if !strings.Contains(view, "/v2/answer") {
+		t.Fatalf("expected search to show matched endpoint, got %q", view)
+	}
+	if ep := updatedModel.SelectedEndpoint(); ep == nil || ep.Path != "/v2/answer" {
+		t.Fatalf("expected selected endpoint to be filtered match, got %#v", ep)
+	}
+}
+
+func TestApp_SearchModeCanMoveSelection(t *testing.T) {
+	cfg := config.Config{
+		BaseURL:         "http://localhost:13205",
+		DefaultEncoding: "json",
+	}
+
+	m := app.NewModel(cfg, api.GetDiscoveryURL())
+	endpoints := []api.Endpoint{
+		{Name: "answer one", Path: "/v2/answer-one"},
+		{Name: "answer two", Path: "/v2/answer-two"},
+	}
+	newModel, _ := m.Update(app.EndpointsLoadedMsg{Endpoints: endpoints})
+	updatedModel := newModel.(app.Model)
+
+	newModel, _ = updatedModel.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
+	updatedModel = newModel.(app.Model)
+	for _, r := range "answer" {
+		newModel, _ = updatedModel.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		updatedModel = newModel.(app.Model)
+	}
+	newModel, _ = updatedModel.Update(tea.KeyMsg{Type: tea.KeyDown})
+	updatedModel = newModel.(app.Model)
+
+	if ep := updatedModel.SelectedEndpoint(); ep == nil || ep.Path != "/v2/answer-two" {
+		t.Fatalf("expected down key to move search selection, got %#v", ep)
+	}
+}
+
 func TestApp_EnterUsesDefaultEncodingAndRequests(t *testing.T) {
 	cfg := config.Config{
 		BaseURL:         "http://localhost:13205",

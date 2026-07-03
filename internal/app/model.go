@@ -1,6 +1,8 @@
 package app
 
 import (
+	"strings"
+
 	"endpoint-tui/internal/api"
 	"endpoint-tui/internal/config"
 
@@ -15,9 +17,13 @@ type Model struct {
 
 	endpoints []api.Endpoint
 	cursor    int
+	searching bool
+	search    string
 
 	encodings      []string
 	encodingCursor int
+	languages      []string
+	languageCursor int
 
 	result api.CurlResult
 
@@ -26,6 +32,8 @@ type Model struct {
 
 	settingsBaseURL         textinput.Model
 	settingsEncodingCursor  int
+	settingsLanguageCursor  int
+	settingsOptionCursor    int
 	settingsSaved           bool
 	settingsValidationError string
 
@@ -43,6 +51,9 @@ type Model struct {
 // Encodings is the selectable response encoding list.
 var Encodings = []string{"json", "text", "markdown"}
 
+// Languages is the selectable UI language list.
+var Languages = []string{"en", "zh"}
+
 // NewModel creates the application model.
 func NewModel(cfg config.Config, discoveryURL string) Model {
 	ti := textinput.New()
@@ -56,6 +67,13 @@ func NewModel(cfg config.Config, discoveryURL string) Model {
 	for i, e := range Encodings {
 		if e == cfg.DefaultEncoding {
 			encIdx = i
+			break
+		}
+	}
+	langIdx := 0
+	for i, lang := range Languages {
+		if lang == cfg.Language {
+			langIdx = i
 			break
 		}
 	}
@@ -73,10 +91,13 @@ func NewModel(cfg config.Config, discoveryURL string) Model {
 		page:                   page,
 		encodings:              Encodings,
 		encodingCursor:         encIdx,
+		languages:              Languages,
+		languageCursor:         langIdx,
 		config:                 cfg,
 		discoveryURL:           discoveryURL,
 		settingsBaseURL:        ti,
 		settingsEncodingCursor: encIdx,
+		settingsLanguageCursor: langIdx,
 		loading:                loading,
 		loadingMessage:         loadingMessage,
 	}
@@ -84,10 +105,11 @@ func NewModel(cfg config.Config, discoveryURL string) Model {
 
 // SelectedEndpoint returns the currently selected endpoint.
 func (m Model) SelectedEndpoint() *api.Endpoint {
-	if m.cursor < 0 || m.cursor >= len(m.endpoints) {
+	indexes := m.filteredEndpointIndexes()
+	if m.cursor < 0 || m.cursor >= len(indexes) {
 		return nil
 	}
-	return &m.endpoints[m.cursor]
+	return &m.endpoints[indexes[m.cursor]]
 }
 
 // SelectedEncoding returns the currently selected response encoding.
@@ -104,6 +126,33 @@ func (m Model) SettingsSelectedEncoding() string {
 		return "json"
 	}
 	return m.encodings[m.settingsEncodingCursor]
+}
+
+func (m Model) SelectedLanguage() string {
+	if m.languageCursor < 0 || m.languageCursor >= len(m.languages) {
+		return "en"
+	}
+	return m.languages[m.languageCursor]
+}
+
+func (m Model) SettingsSelectedLanguage() string {
+	if m.settingsLanguageCursor < 0 || m.settingsLanguageCursor >= len(m.languages) {
+		return "en"
+	}
+	return m.languages[m.settingsLanguageCursor]
+}
+
+func (m Model) filteredEndpointIndexes() []int {
+	query := strings.TrimSpace(strings.ToLower(m.search))
+	indexes := make([]int, 0, len(m.endpoints))
+	for i, ep := range m.endpoints {
+		if query == "" ||
+			strings.Contains(strings.ToLower(ep.Name), query) ||
+			strings.Contains(strings.ToLower(ep.Path), query) {
+			indexes = append(indexes, i)
+		}
+	}
+	return indexes
 }
 
 func (m Model) endpointDiscoveryURL() string {
