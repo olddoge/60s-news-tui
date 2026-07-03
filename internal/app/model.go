@@ -9,59 +9,48 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-// Model 是 Bubble Tea 的顶层 Model，管理所有页面状态。
+// Model is the top-level Bubble Tea model.
 type Model struct {
-	// 当前页面
 	page Page
 
-	// 接口数据
 	endpoints []api.Endpoint
-	cursor    int // 接口列表选中索引
+	cursor    int
 
-	// encoding 选择
 	encodings      []string
 	encodingCursor int
 
-	// 请求结果
 	result api.CurlResult
 
-	// 配置
 	config       config.Config
 	discoveryURL string
 
-	// 设置页
 	settingsBaseURL         textinput.Model
 	settingsEncodingCursor  int
 	settingsSaved           bool
 	settingsValidationError string
 
-	// 结果页
 	viewport viewport.Model
 
-	// 终端尺寸
 	width  int
 	height int
 	ready  bool
 
-	// 加载状态
 	loading bool
 	loadErr error
 }
 
-// Encodings 是可选的 encoding 值列表。
+// Encodings is the selectable response encoding list.
 var Encodings = []string{"json", "text", "markdown"}
 
-// NewModel 创建应用 Model。
+// NewModel creates the application model.
 func NewModel(cfg config.Config, discoveryURL string) Model {
-	// 设置页输入框
 	ti := textinput.New()
-	ti.Placeholder = "例如：http://127.0.0.1:8080"
+	ti.Placeholder = "for example: http://127.0.0.1:8080"
 	ti.CharLimit = 256
 	ti.Width = 60
 	ti.SetValue(cfg.BaseURL)
 	ti.Focus()
 
-	// 确定默认 encoding 位置
 	encIdx := 0
 	for i, e := range Encodings {
 		if e == cfg.DefaultEncoding {
@@ -82,7 +71,7 @@ func NewModel(cfg config.Config, discoveryURL string) Model {
 	}
 }
 
-// SelectedEndpoint 返回当前选中的接口。
+// SelectedEndpoint returns the currently selected endpoint.
 func (m Model) SelectedEndpoint() *api.Endpoint {
 	if m.cursor < 0 || m.cursor >= len(m.endpoints) {
 		return nil
@@ -90,7 +79,7 @@ func (m Model) SelectedEndpoint() *api.Endpoint {
 	return &m.endpoints[m.cursor]
 }
 
-// SelectedEncoding 返回当前选中的 encoding。
+// SelectedEncoding returns the currently selected response encoding.
 func (m Model) SelectedEncoding() string {
 	if m.encodingCursor < 0 || m.encodingCursor >= len(m.encodings) {
 		return "json"
@@ -98,7 +87,7 @@ func (m Model) SelectedEncoding() string {
 	return m.encodings[m.encodingCursor]
 }
 
-// SettingsSelectedEncoding 返回设置页当前选中的 encoding。
+// SettingsSelectedEncoding returns the encoding selected in settings.
 func (m Model) SettingsSelectedEncoding() string {
 	if m.settingsEncodingCursor < 0 || m.settingsEncodingCursor >= len(m.encodings) {
 		return "json"
@@ -106,7 +95,7 @@ func (m Model) SettingsSelectedEncoding() string {
 	return m.encodings[m.settingsEncodingCursor]
 }
 
-// Init 是 Bubble Tea 的初始化命令，启动时自动获取接口列表。
+// Init starts loading endpoints.
 func (m Model) Init() tea.Cmd {
 	return fetchEndpointsCmd(m.discoveryURL)
 }

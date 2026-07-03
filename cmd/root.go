@@ -1,4 +1,4 @@
-// Package cmd 处理命令行参数解析。
+// Package cmd handles command-line arguments.
 package cmd
 
 import (
@@ -11,10 +11,10 @@ import (
 	"endpoint-tui/internal/config"
 )
 
-// Version 是程序版本号，编译时可通过 ldflags 注入。
+// Version is injected at build time with ldflags.
 var Version = "0.1.0"
 
-// Parse 解析命令行参数并返回配置和发现服务地址。
+// Parse parses command-line arguments and returns config plus discovery URL.
 func Parse() (config.Config, string) {
 	var configPath string
 	var discoveryURL string
@@ -26,22 +26,22 @@ func Parse() (config.Config, string) {
 		defaultConfigPath = filepath.Join(home, ".config", "endpoint-tui", "config.json")
 	}
 
-	flag.StringVar(&configPath, "config", defaultConfigPath, "配置文件路径")
-	flag.StringVar(&discoveryURL, "discovery-url", api.GetDiscoveryURL(), "接口发现服务地址")
-	flag.BoolVar(&showVersion, "version", false, "显示版本号")
-	flag.BoolVar(&showHelp, "help", false, "显示帮助信息")
+	flag.StringVar(&configPath, "config", defaultConfigPath, "config file path")
+	flag.StringVar(&discoveryURL, "discovery-url", api.GetDiscoveryURL(), "endpoint discovery service URL")
+	flag.BoolVar(&showVersion, "version", false, "show version")
+	flag.BoolVar(&showHelp, "help", false, "show help")
 
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, `Endpoint TUI - 终端接口调试工具
+		fmt.Fprintf(os.Stderr, `Endpoint TUI - terminal API browser
 
-用法:
-  endpoint-tui [选项]
+Usage:
+  endpoint-tui [options]
 
-选项:
-  --config FILE        配置文件路径 (默认: ~/.config/endpoint-tui/config.json)
-  --discovery-url URL  接口发现服务地址 (默认: %s)
-  --version            显示版本号
-  --help               显示帮助信息
+Options:
+  --config FILE        config file path (default: ~/.config/endpoint-tui/config.json)
+  --discovery-url URL  endpoint discovery service URL (default: %s)
+  --version            show version
+  --help               show help
 `, api.GetDiscoveryURL())
 	}
 
@@ -57,10 +57,9 @@ func Parse() (config.Config, string) {
 		os.Exit(0)
 	}
 
-	// 加载配置文件
 	cfg, err := config.LoadFromPath(configPath)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "警告: %v\n", err)
+		fmt.Fprintf(os.Stderr, "warning: %v\n", err)
 		cfg = config.DefaultConfig()
 	}
 

@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+
 	"endpoint-tui/internal/api"
 	"endpoint-tui/internal/config"
 	"endpoint-tui/internal/urlutil"
@@ -9,7 +10,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-// fetchEndpointsCmd 异步获取接口列表。
 func fetchEndpointsCmd(url string) tea.Cmd {
 	return func() tea.Msg {
 		endpoints, err := api.FetchEndpoints(url)
@@ -20,7 +20,6 @@ func fetchEndpointsCmd(url string) tea.Cmd {
 	}
 }
 
-// executeCurlCmd 异步执行 curl 请求。
 func executeCurlCmd(requestURL string, executor api.CommandExecutor) tea.Cmd {
 	return func() tea.Msg {
 		ctx := context.Background()
@@ -29,9 +28,8 @@ func executeCurlCmd(requestURL string, executor api.CommandExecutor) tea.Cmd {
 	}
 }
 
-// Update 是 Bubble Tea 的主更新函数。
+// Update handles Bubble Tea messages.
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	// 处理全局消息
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
@@ -44,12 +42,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tea.KeyMsg:
-		// 全局快捷键
 		switch msg.String() {
 		case "ctrl+c":
 			return m, tea.Quit
 		case "q":
-			// 在部分页面 q 用于退出
 			if m.page == PageEndpointList || m.page == PageError {
 				return m, tea.Quit
 			}
@@ -64,7 +60,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.endpoints = msg.Endpoints
 			m.cursor = 0
 			m.loadErr = nil
-			// 如果没有配置根路径，进入设置页
 			if m.config.BaseURL == "" {
 				m.page = PageSettings
 			} else {
@@ -81,7 +76,6 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	// 按页面分发
 	switch m.page {
 	case PageLoading:
 		return m.updateLoading(msg)
@@ -100,12 +94,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 }
 
-// updateLoading 加载页面的 Update。
 func (m Model) updateLoading(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// updateEndpointList 接口列表页的 Update。
 func (m Model) updateEndpointList(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -145,7 +137,6 @@ func (m Model) updateEndpointList(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// updateEncodingSelect encoding 选择页的 Update。
 func (m Model) updateEncodingSelect(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -169,7 +160,7 @@ func (m Model) updateEncodingSelect(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.page = PageError
 				return m, nil
 			}
-			m.result = api.CurlResult{} // 清空上次结果
+			m.result = api.CurlResult{}
 			executor := api.NewCurlExecutor()
 			return m, executeCurlCmd(requestURL, executor)
 		case "esc":
@@ -180,7 +171,6 @@ func (m Model) updateEncodingSelect(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// updateResult 结果页的 Update。
 func (m Model) updateResult(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -198,7 +188,6 @@ func (m Model) updateResult(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "end":
 			m.viewport.GotoBottom()
 		case "r":
-			// 重新请求
 			ep := m.SelectedEndpoint()
 			if ep == nil {
 				return m, nil
@@ -219,7 +208,6 @@ func (m Model) updateResult(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// updateSettings 设置页的 Update。
 func (m Model) updateSettings(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
@@ -227,11 +215,9 @@ func (m Model) updateSettings(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "esc":
-			// 放弃修改
 			m.page = PageEndpointList
 			return m, nil
 		case "ctrl+s":
-			// 保存设置
 			baseURL, err := config.ValidateBaseURL(m.settingsBaseURL.Value())
 			if err != nil {
 				m.settingsValidationError = err.Error()
@@ -240,12 +226,11 @@ func (m Model) updateSettings(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.config.BaseURL = baseURL
 			m.config.DefaultEncoding = m.SettingsSelectedEncoding()
 			if err := config.Save(m.config); err != nil {
-				m.settingsValidationError = "保存失败: " + err.Error()
+				m.settingsValidationError = "save failed: " + err.Error()
 				return m, nil
 			}
 			m.settingsSaved = true
 			m.settingsValidationError = ""
-			// 更新 encoding 选择页的默认值
 			for i, e := range m.encodings {
 				if e == m.config.DefaultEncoding {
 					m.encodingCursor = i
@@ -262,7 +247,6 @@ func (m Model) updateSettings(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.settingsEncodingCursor++
 			}
 		default:
-			// 更新文本输入框
 			m.settingsSaved = false
 			m.settingsValidationError = ""
 		}
@@ -272,7 +256,6 @@ func (m Model) updateSettings(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-// updateError 错误页的 Update。
 func (m Model) updateError(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:

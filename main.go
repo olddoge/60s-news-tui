@@ -14,7 +14,6 @@ import (
 func main() {
 	cfg, discoveryURL := cmd.Parse()
 
-	// 检查 curl 是否可用
 	if err := api.CheckCurlAvailable(); err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())
 		os.Exit(1)
@@ -29,7 +28,7 @@ func main() {
 	)
 
 	if _, err := p.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "程序运行出错: %v\n", err)
+		fmt.Fprintf(os.Stderr, "program failed: %v\n", err)
 		os.Exit(1)
 	}
 }

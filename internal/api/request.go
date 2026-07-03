@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// CurlResult 表示一次 curl 请求的结果。
+// CurlResult represents one curl request result.
 type CurlResult struct {
 	URL        string
 	StatusCode int
@@ -20,18 +20,18 @@ type CurlResult struct {
 	Cancelled  bool
 }
 
-// CommandExecutor 定义命令执行接口，便于单元测试 mock。
+// CommandExecutor executes requests and can be mocked in tests.
 type CommandExecutor interface {
 	Execute(ctx context.Context, url string) CurlResult
 }
 
-// CurlExecutor 通过系统 curl 命令执行 HTTP 请求。
+// CurlExecutor executes HTTP requests through the system curl command.
 type CurlExecutor struct {
 	Timeout       time.Duration
 	ConnectTimout time.Duration
 }
 
-// NewCurlExecutor 创建默认的 CurlExecutor。
+// NewCurlExecutor creates the default curl executor.
 func NewCurlExecutor() *CurlExecutor {
 	return &CurlExecutor{
 		Timeout:       60 * time.Second,
@@ -39,16 +39,16 @@ func NewCurlExecutor() *CurlExecutor {
 	}
 }
 
-// CheckCurlAvailable 检查系统是否安装了 curl。
+// CheckCurlAvailable verifies that curl is installed.
 func CheckCurlAvailable() error {
 	_, err := exec.LookPath("curl")
 	if err != nil {
-		return fmt.Errorf("未找到 curl 命令。\n\n请在 Debian 中执行：\nsudo apt update && sudo apt install -y curl")
+		return fmt.Errorf("curl command not found\n\nInstall curl first, for example on Debian:\nsudo apt update && sudo apt install -y curl")
 	}
 	return nil
 }
 
-// Execute 执行 curl 请求，支持通过 context 取消。
+// Execute runs a curl request and supports cancellation through context.
 func (e *CurlExecutor) Execute(ctx context.Context, requestURL string) CurlResult {
 	result := CurlResult{
 		URL: requestURL,
@@ -79,10 +79,9 @@ func (e *CurlExecutor) Execute(ctx context.Context, requestURL string) CurlResul
 	result.Stderr = stderr.String()
 
 	if err != nil {
-		// 判断是否被取消
 		if ctx.Err() != nil {
 			result.Cancelled = true
-			result.Error = fmt.Errorf("请求已取消")
+			result.Error = fmt.Errorf("request cancelled")
 			return result
 		}
 

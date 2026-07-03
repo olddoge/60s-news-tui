@@ -4,42 +4,45 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
   test:
-    name: 测试
+    name: Test and lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: 安装 Go
+      - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: "1.24"
           cache: true
 
-      - name: 代码格式检查
+      - name: Check formatting
         run: |
           if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
-            echo "以下文件格式不正确:"
+            echo "The following files are not gofmt formatted:"
             gofmt -s -l .
             exit 1
           fi
 
-      - name: 静态分析
+      - name: Vet
         run: go vet ./...
 
-      - name: 运行测试
+      - name: Test
         run: go test ./... -count=1 -race
 
   build:
-    name: 构建
+    name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
     needs: test
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         include:
           - goos: linux
@@ -59,19 +62,26 @@ jobs:
             artifact: endpoint-tui-windows-amd64.exe
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: 安装 Go
+      - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: "1.24"
           cache: true
 
-      - name: 提取版本号
+      - name: Resolve version
         id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            echo "VERSION=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          else
+            echo "VERSION=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: 构建
+      - name: Build binary
         env:
           VERSION: ${{ steps.version.outputs.VERSION }}
           GOOS: ${{ matrix.goos }}
@@ -86,66 +96,31 @@ jobs:
             -o "${{ matrix.artifact }}" \
             .
 
-      - name: 上传构建产物
+      - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
           path: ${{ matrix.artifact }}
 
   release:
-    name: 发布
+    name: Publish GitHub release
     needs: build
     runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
     steps:
-      - name: 下载所有构建产物
+      - name: Download binaries
         uses: actions/download-artifact@v4
         with:
           pattern: endpoint-tui-*
           merge-multiple: true
           path: dist/
 
-      - name: 生成校验和
+      - name: Generate checksums
         working-directory: dist
         run: sha256sum * > checksums.txt
 
-      - name: 提取版本号
-        id: version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
-
-      - name: 创建 Release
+      - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
-          name: ${{ steps.version.outputs.VERSION }}
-          body: |
-            ## 安装
-
-            ### Linux AMD64
-            ```bash
-            sudo install -m 755 endpoint-tui-linux-amd64 /usr/local/bin/endpoint-tui
-            ```
-
-            ### Linux ARM64
-            ```bash
-            sudo install -m 755 endpoint-tui-linux-arm64 /usr/local/bin/endpoint-tui
-            ```
-
-            ### macOS Intel
-            ```bash
-            chmod +x endpoint-tui-darwin-amd64
-            sudo mv endpoint-tui-darwin-amd64 /usr/local/bin/endpoint-tui
-            ```
-
-            ### macOS Apple Silicon
-            ```bash
-            chmod +x endpoint-tui-darwin-arm64
-            sudo mv endpoint-tui-darwin-arm64 /usr/local/bin/endpoint-tui
-            ```
-
-            ### Windows
-            下载 `endpoint-tui-windows-amd64.exe` 并在终端中运行。
-
-            ## 校验
-            见 `checksums.txt`
-          files: |
-            dist/*
+          files: dist/*
           generate_release_notes: true

@@ -10,10 +10,10 @@ import (
 	"endpoint-tui/internal/ui"
 )
 
-// View 是 Bubble Tea 的主渲染函数。
+// View renders the current page.
 func (m Model) View() string {
 	if !m.ready {
-		return "正在初始化..."
+		return "Initializing..."
 	}
 
 	switch m.page {
@@ -34,34 +34,28 @@ func (m Model) View() string {
 	}
 }
 
-// viewLoading 渲染加载页面。
 func (m Model) viewLoading() string {
 	return ui.ContainerStyle.Render(
-		ui.LoadingStyle.Render("正在加载接口列表..."),
+		ui.LoadingStyle.Render("Loading endpoint list..."),
 	)
 }
 
-// viewEndpointList 渲染接口列表页面。
 func (m Model) viewEndpointList() string {
 	var b strings.Builder
 
-	// 标题
 	b.WriteString(ui.RenderTitle("Endpoint TUI"))
 	b.WriteString("\n")
 
-	// 根路径
 	baseURL := m.config.BaseURL
 	if baseURL == "" {
-		baseURL = "(未设置)"
+		baseURL = "(not configured)"
 	}
-	b.WriteString(ui.InfoStyle.Render("根路径：" + baseURL))
+	b.WriteString(ui.InfoStyle.Render("Base URL: " + baseURL))
 	b.WriteString("\n\n")
 
-	// 接口列表
-	b.WriteString(ui.InfoStyle.Render("接口列表："))
+	b.WriteString(ui.InfoStyle.Render("Endpoints:"))
 	b.WriteString("\n\n")
 
-	// 计算可视区域
 	listHeight := m.height - 10
 	if listHeight < 1 {
 		listHeight = 1
@@ -82,7 +76,6 @@ func (m Model) viewEndpointList() string {
 		b.WriteString("\n")
 	}
 
-	// 滚动指示器
 	if len(m.endpoints) > listHeight {
 		b.WriteString(ui.HelpStyle.Render(
 			fmt.Sprintf("  ... %d/%d", m.cursor+1, len(m.endpoints)),
@@ -90,19 +83,17 @@ func (m Model) viewEndpointList() string {
 		b.WriteString("\n")
 	}
 
-	// 帮助栏
 	b.WriteString(ui.RenderHelp([]string{
-		"↑/↓ 选择",
-		"Enter 请求",
-		"s 设置",
-		"r 刷新",
-		"q 退出",
+		"up/down select",
+		"Enter request",
+		"s settings",
+		"r refresh",
+		"q quit",
 	}))
 
 	return ui.ContainerStyle.Render(b.String())
 }
 
-// viewEncodingSelect 渲染 encoding 选择页面。
 func (m Model) viewEncodingSelect() string {
 	var b strings.Builder
 
@@ -112,11 +103,11 @@ func (m Model) viewEncodingSelect() string {
 		epPath = ep.Path
 	}
 
-	b.WriteString(ui.RenderTitle("请求配置"))
+	b.WriteString(ui.RenderTitle("Request Options"))
 	b.WriteString("\n")
-	b.WriteString(ui.InfoStyle.Render("接口：" + epPath))
+	b.WriteString(ui.InfoStyle.Render("Endpoint: " + epPath))
 	b.WriteString("\n\n")
-	b.WriteString(ui.InfoStyle.Render("请选择返回格式："))
+	b.WriteString(ui.InfoStyle.Render("Select response format:"))
 	b.WriteString("\n\n")
 
 	for i, enc := range m.encodings {
@@ -129,15 +120,14 @@ func (m Model) viewEncodingSelect() string {
 	}
 
 	b.WriteString(ui.RenderHelp([]string{
-		"↑/↓ 选择",
-		"Enter 执行请求",
-		"Esc 返回列表",
+		"up/down select",
+		"Enter run",
+		"Esc back",
 	}))
 
 	return ui.ContainerStyle.Render(b.String())
 }
 
-// viewResult 渲染请求结果页面。
 func (m Model) viewResult() string {
 	var b strings.Builder
 
@@ -148,33 +138,32 @@ func (m Model) viewResult() string {
 		epPath = ep.Name
 	}
 
-	b.WriteString(ui.RenderTitle("请求完成"))
+	b.WriteString(ui.RenderTitle("Request Complete"))
 	b.WriteString("\n")
 
-	// 信息行
 	infoLines := []string{
-		ui.LabelStyle.Render("接口：") + ui.ValueStyle.Render(epPath),
-		ui.LabelStyle.Render("格式：") + ui.ValueStyle.Render(m.SelectedEncoding()),
-		ui.LabelStyle.Render("地址：") + ui.ValueStyle.Render(ui.Truncate(r.URL, m.width-10)),
+		ui.LabelStyle.Render("Endpoint:") + ui.ValueStyle.Render(epPath),
+		ui.LabelStyle.Render("Format:") + ui.ValueStyle.Render(m.SelectedEncoding()),
+		ui.LabelStyle.Render("URL:") + ui.ValueStyle.Render(ui.Truncate(r.URL, m.width-10)),
 	}
 
 	if r.Cancelled {
 		infoLines = append(infoLines,
-			ui.LabelStyle.Render("状态：")+ui.WarningStyle.Render("已取消"),
+			ui.LabelStyle.Render("Status:")+ui.WarningStyle.Render("cancelled"),
 		)
 	} else if r.Error != nil || r.ExitCode != 0 {
 		infoLines = append(infoLines,
-			ui.LabelStyle.Render("状态：")+ui.ErrorStyle.Render(fmt.Sprintf("失败 (exit=%d)", r.ExitCode)),
+			ui.LabelStyle.Render("Status:")+ui.ErrorStyle.Render(fmt.Sprintf("failed (exit=%d)", r.ExitCode)),
 		)
 		if r.Stderr != "" {
 			infoLines = append(infoLines,
-				ui.LabelStyle.Render("错误：")+ui.ErrorStyle.Render(ui.Truncate(r.Stderr, m.width-10)),
+				ui.LabelStyle.Render("Error:")+ui.ErrorStyle.Render(ui.Truncate(r.Stderr, m.width-10)),
 			)
 		}
 	} else {
 		infoLines = append(infoLines,
-			ui.LabelStyle.Render("耗时：")+ui.ValueStyle.Render(r.Duration.Truncate(0).String()),
-			ui.LabelStyle.Render("状态：")+ui.SuccessStyle.Render("成功"),
+			ui.LabelStyle.Render("Duration:")+ui.ValueStyle.Render(r.Duration.Truncate(0).String()),
+			ui.LabelStyle.Render("Status:")+ui.SuccessStyle.Render("success"),
 		)
 	}
 
@@ -184,37 +173,33 @@ func (m Model) viewResult() string {
 	}
 
 	b.WriteString("\n")
-	b.WriteString(ui.InfoStyle.Render("返回内容："))
+	b.WriteString(ui.InfoStyle.Render("Response:"))
 	b.WriteString("\n\n")
 	b.WriteString(m.viewport.View())
 
-	// 帮助栏
 	b.WriteString(ui.RenderHelp([]string{
-		"↑/↓/PgUp/PgDn 滚动",
-		"Home/End 跳转",
-		"r 重新请求",
-		"b/Esc 返回列表",
-		"q 退出",
+		"up/down/PgUp/PgDn scroll",
+		"Home/End jump",
+		"r retry",
+		"b/Esc back",
+		"q quit",
 	}))
 
 	return ui.ContainerStyle.Render(b.String())
 }
 
-// viewSettings 渲染设置页面。
 func (m Model) viewSettings() string {
 	var b strings.Builder
 
-	b.WriteString(ui.RenderTitle("设置"))
+	b.WriteString(ui.RenderTitle("Settings"))
 	b.WriteString("\n")
 
-	// 根路径
-	b.WriteString(ui.LabelStyle.Render("根路径："))
+	b.WriteString(ui.LabelStyle.Render("Base URL:"))
 	b.WriteString("\n")
 	b.WriteString(m.settingsBaseURL.View())
 	b.WriteString("\n\n")
 
-	// 默认 encoding
-	b.WriteString(ui.LabelStyle.Render("默认格式："))
+	b.WriteString(ui.LabelStyle.Render("Default:"))
 	b.WriteString("\n")
 	for i, enc := range m.encodings {
 		if i == m.settingsEncodingCursor {
@@ -225,28 +210,25 @@ func (m Model) viewSettings() string {
 		b.WriteString("\n")
 	}
 
-	// 验证错误
 	if m.settingsValidationError != "" {
 		b.WriteString("\n")
 		b.WriteString(ui.ErrorStyle.Render(m.settingsValidationError))
 	}
 
-	// 保存状态
 	if m.settingsSaved {
 		b.WriteString("\n")
-		b.WriteString(ui.SuccessStyle.Render("配置已保存"))
+		b.WriteString(ui.SuccessStyle.Render("Config saved"))
 	}
 
 	b.WriteString(ui.RenderHelp([]string{
-		"↑/↓ 选择格式",
-		"Ctrl+S 保存",
-		"Esc 取消",
+		"up/down select format",
+		"Ctrl+S save",
+		"Esc cancel",
 	}))
 
 	return ui.ContainerStyle.Render(b.String())
 }
 
-// viewError 渲染错误页面。
 func (m Model) viewError() string {
 	var b strings.Builder
 
@@ -254,38 +236,34 @@ func (m Model) viewError() string {
 	b.WriteString("\n")
 
 	if m.loadErr != nil {
-		b.WriteString(ui.ErrorStyle.Render("加载失败："))
+		b.WriteString(ui.ErrorStyle.Render("Load failed: "))
 		b.WriteString(ui.ValueStyle.Render(m.loadErr.Error()))
 	}
 
 	b.WriteString(ui.RenderHelp([]string{
-		"r 重新加载",
-		"s 设置",
-		"q 退出",
+		"r reload",
+		"s settings",
+		"q quit",
 	}))
 
 	return ui.ContainerStyle.Render(b.String())
 }
 
-// formatEndpointLine 格式化单行接口显示。
 func formatEndpointLine(ep api.Endpoint, width int) string {
 	path := ep.Path
 	name := ep.Name
 
-	// 如果名称和路径相同，只显示路径
 	if name == path {
 		return ui.Truncate(path, width)
 	}
 
-	// 名称 + 路径
 	line := ui.PadRight(name, 20) + " " + path
 	return ui.Truncate(line, width)
 }
 
-// formatResultContent 格式化请求结果内容。
 func formatResultContent(r api.CurlResult, encoding string) string {
 	if r.Cancelled {
-		return "请求已取消。"
+		return "request cancelled"
 	}
 
 	if r.Error != nil && r.ExitCode != 0 {
@@ -301,10 +279,9 @@ func formatResultContent(r api.CurlResult, encoding string) string {
 
 	content := r.Stdout
 	if content == "" {
-		return "(返回内容为空)"
+		return "(empty response)"
 	}
 
-	// 根据 encoding 处理内容
 	switch encoding {
 	case "json":
 		return formatJSON(content)
@@ -315,11 +292,9 @@ func formatResultContent(r api.CurlResult, encoding string) string {
 	}
 }
 
-// formatJSON 格式化 JSON 内容，失败时返回原文。
 func formatJSON(content string) string {
 	var obj interface{}
 	if err := json.Unmarshal([]byte(content), &obj); err != nil {
-		// 不是有效 JSON，返回原文
 		return sanitizeContent(content)
 	}
 
@@ -330,19 +305,16 @@ func formatJSON(content string) string {
 	return string(formatted)
 }
 
-// sanitizeContent 过滤控制字符，防止终端注入。
 func sanitizeContent(content string) string {
 	var b strings.Builder
 	b.Grow(len(content))
 
 	for _, r := range content {
-		// 保留换行、制表符和可打印字符
 		if r == '\n' || r == '\t' || r == '\r' {
 			b.WriteRune(r)
 			continue
 		}
 		if r < 32 || (r >= 0x7F && r <= 0x9F) {
-			// 跳过控制字符（ansi 转义序列等）
 			continue
 		}
 		if !utf8.ValidRune(r) {
