@@ -7,12 +7,14 @@ import (
 	"endpoint-tui/cmd"
 	"endpoint-tui/internal/api"
 	"endpoint-tui/internal/app"
+	"endpoint-tui/internal/config"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 func main() {
 	cfg, discoveryURL := cmd.Parse()
+	config.SetDefaultPublicInstances(publicInstanceJSON)
 
 	if err := api.CheckCurlAvailable(); err != nil {
 		fmt.Fprintln(os.Stderr, err.Error())

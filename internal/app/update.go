@@ -107,11 +107,20 @@ func (m Model) completeCurrentParam() (Model, tea.Cmd) {
 }
 
 func (m Model) saveSettings() (Model, tea.Cmd) {
-	baseURL, err := config.ValidateBaseURL(m.settingsBaseURL.Value())
-	if err != nil {
-		m.settingsValidationError = err.Error()
-		return m, nil
+	var baseURL string
+	if instance, ok := m.selectedPublicInstance(); ok {
+		baseURL = instance.URL
+		m.config.ServerMode = "public"
+	} else {
+		var err error
+		baseURL, err = config.ValidateBaseURL(m.settingsBaseURL.Value())
+		if err != nil {
+			m.settingsValidationError = err.Error()
+			return m, nil
+		}
+		m.config.ServerMode = "custom"
 	}
+
 	m.config.BaseURL = baseURL
 	m.config.DefaultEncoding = m.SettingsSelectedEncoding()
 	m.config.Language = m.SettingsSelectedLanguage()
@@ -137,6 +146,34 @@ func (m Model) saveSettings() (Model, tea.Cmd) {
 	m.loadingMessage = "Config saved. Loading endpoint list..."
 	m.page = PageLoading
 	return m, fetchEndpointsCmd(m.endpointDiscoveryURL())
+}
+
+func (m Model) prepareSettings() Model {
+	m.settingsBaseURL.SetValue(m.config.BaseURL)
+	m.settingsServerCursor = serverCursorForBaseURL(m.config, m.publicInstances)
+	if instance, ok := m.selectedPublicInstance(); ok {
+		m.settingsBaseURL.SetValue(instance.URL)
+	}
+	encIdx := 0
+	for i, e := range m.encodings {
+		if e == m.config.DefaultEncoding {
+			encIdx = i
+			break
+		}
+	}
+	m.settingsEncodingCursor = encIdx
+	langIdx := 0
+	for i, lang := range m.languages {
+		if lang == m.config.Language {
+			langIdx = i
+			break
+		}
+	}
+	m.settingsLanguageCursor = langIdx
+	m.settingsOptionCursor = 0
+	m.settingsSaved = false
+	m.settingsValidationError = ""
+	return m
 }
 
 // Update handles Bubble Tea messages.
@@ -268,26 +305,7 @@ func (m Model) updateEndpointList(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.page = PageLoading
 			return m, fetchEndpointsCmd(m.endpointDiscoveryURL())
 		case "s":
-			m.settingsBaseURL.SetValue(m.config.BaseURL)
-			encIdx := 0
-			for i, e := range m.encodings {
-				if e == m.config.DefaultEncoding {
-					encIdx = i
-					break
-				}
-			}
-			m.settingsEncodingCursor = encIdx
-			langIdx := 0
-			for i, lang := range m.languages {
-				if lang == m.config.Language {
-					langIdx = i
-					break
-				}
-			}
-			m.settingsLanguageCursor = langIdx
-			m.settingsOptionCursor = 0
-			m.settingsSaved = false
-			m.settingsValidationError = ""
+			m = m.prepareSettings()
 			m.page = PageSettings
 			return m, nil
 		}
@@ -380,31 +398,62 @@ func (m Model) updateSettings(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+s", "enter":
 			return m.saveSettings()
 		case "tab":
-			m.settingsOptionCursor = (m.settingsOptionCursor + 1) % 2
+			m.settingsOptionCursor = (m.settingsOptionCursor + 1) % 3
+			return m, nil
 		case "up", "k":
+			m.settingsSaved = false
+			m.settingsValidationError = ""
 			if m.settingsOptionCursor == 0 {
+				if m.settingsServerCursor > 0 {
+					m.settingsServerCursor--
+					m.syncSettingsServerInput()
+				}
+			} else if m.settingsOptionCursor == 1 {
 				if m.settingsEncodingCursor > 0 {
 					m.settingsEncodingCursor--
 				}
 			} else if m.settingsLanguageCursor > 0 {
 				m.settingsLanguageCursor--
 			}
+			return m, nil
 		case "down", "j":
+			m.settingsSaved = false
+			m.settingsValidationError = ""
 			if m.settingsOptionCursor == 0 {
+				if m.settingsServerCursor < len(m.publicInstances) {
+					m.settingsServerCursor++
+					m.syncSettingsServerInput()
+				}
+			} else if m.settingsOptionCursor == 1 {
 				if m.settingsEncodingCursor < len(m.encodings)-1 {
 					m.settingsEncodingCursor++
 				}
 			} else if m.settingsLanguageCursor < len(m.languages)-1 {
 				m.settingsLanguageCursor++
 			}
+			return m, nil
 		default:
 			m.settingsSaved = false
 			m.settingsValidationError = ""
 		}
 	}
 
-	m.settingsBaseURL, cmd = m.settingsBaseURL.Update(msg)
+	if m.usingCustomServer() {
+		m.settingsBaseURL, cmd = m.settingsBaseURL.Update(msg)
+	}
 	return m, cmd
+}
+
+func (m *Model) syncSettingsServerInput() {
+	if instance, ok := m.selectedPublicInstance(); ok {
+		m.settingsBaseURL.SetValue(instance.URL)
+		return
+	}
+	if m.config.ServerMode == "custom" {
+		m.settingsBaseURL.SetValue(m.config.BaseURL)
+		return
+	}
+	m.settingsBaseURL.SetValue("")
 }
 
 func (m Model) updateError(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -418,9 +467,7 @@ func (m Model) updateError(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.page = PageLoading
 			return m, fetchEndpointsCmd(m.endpointDiscoveryURL())
 		case "s":
-			m.settingsBaseURL.SetValue(m.config.BaseURL)
-			m.settingsSaved = false
-			m.settingsValidationError = ""
+			m = m.prepareSettings()
 			m.page = PageSettings
 			return m, nil
 		}

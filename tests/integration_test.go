@@ -122,7 +122,7 @@ func TestApp_BrandDescriptionShowsOnSettingsAndResult(t *testing.T) {
 	m := app.NewModel(cfg, api.GetDiscoveryURL())
 	newModel, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 30})
 	m = newModel.(app.Model)
-	newModel, _ = m.Update(app.EndpointsLoadedMsg{Endpoints: []api.Endpoint{{Name: "60s", Path: "/v2/60s"}}})
+	newModel, _ = m.Update(app.EndpointsLoadedMsg{Endpoints: []api.Endpoint{{Name: "answer", Path: "/v2/answer"}}})
 	m = newModel.(app.Model)
 	newModel, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'s'}})
 	m = newModel.(app.Model)
@@ -286,7 +286,7 @@ func TestApp_EnterUsesDefaultEncodingAndRequests(t *testing.T) {
 	m := app.NewModel(cfg, api.GetDiscoveryURL())
 
 	endpoints := []api.Endpoint{
-		{Name: "60s", Path: "/v2/60s"},
+		{Name: "answer", Path: "/v2/answer"},
 	}
 	msg := app.EndpointsLoadedMsg{Endpoints: endpoints}
 	newModel, _ := m.Update(msg)
@@ -338,8 +338,18 @@ func TestApp_EndpointWithParamsShowsParamInputBeforeRequest(t *testing.T) {
 		m = newModel.(app.Model)
 	}
 	newModel, cmd = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = newModel.(app.Model)
+	if cmd != nil {
+		t.Fatal("expected to continue to optional size parameter")
+	}
+	newModel, cmd = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = newModel.(app.Model)
+	if cmd != nil {
+		t.Fatal("expected to continue to optional correction level parameter")
+	}
+	newModel, cmd = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	if cmd == nil {
-		t.Fatal("expected request command after parameter input")
+		t.Fatal("expected request command after all qrcode parameters")
 	}
 }
 
@@ -353,7 +363,7 @@ func TestApp_RequiredParamValidation(t *testing.T) {
 	m := app.NewModel(cfg, api.GetDiscoveryURL())
 	newModel, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 30})
 	m = newModel.(app.Model)
-	newModel, _ = m.Update(app.EndpointsLoadedMsg{Endpoints: []api.Endpoint{{Name: "/v2/qrcode", Path: "/v2/qrcode"}}})
+	newModel, _ = m.Update(app.EndpointsLoadedMsg{Endpoints: []api.Endpoint{{Name: "/v2/baike", Path: "/v2/baike"}}})
 	m = newModel.(app.Model)
 	newModel, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	m = newModel.(app.Model)
@@ -369,6 +379,27 @@ func TestApp_RequiredParamValidation(t *testing.T) {
 	}
 }
 
+func TestApp_FirstRunSettingsShowsPublicServerChoices(t *testing.T) {
+	cfg := config.Config{
+		BaseURL:         "",
+		DefaultEncoding: "json",
+	}
+
+	m := app.NewModel(cfg, api.GetDiscoveryURL())
+	newModel, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 30})
+	m = newModel.(app.Model)
+	view := m.View()
+
+	if !strings.Contains(view, "Server:") {
+		t.Fatalf("expected settings to show server selection, got %q", view)
+	}
+	if !strings.Contains(view, "https://60s.crystelf.top") {
+		t.Fatalf("expected public server from public-instance.json, got %q", view)
+	}
+	if !strings.Contains(view, "Custom deployment") {
+		t.Fatalf("expected custom deployment option, got %q", view)
+	}
+}
 func TestApp_FirstRunShowsSettingsWithoutDiscoveryPort(t *testing.T) {
 	cfg := config.Config{
 		BaseURL:         "",
@@ -499,7 +530,7 @@ func TestApp_ResultDisplay(t *testing.T) {
 
 	// 加载接口列表
 	endpoints := []api.Endpoint{
-		{Name: "60s", Path: "/v2/60s"},
+		{Name: "answer", Path: "/v2/answer"},
 	}
 	msg := app.EndpointsLoadedMsg{Endpoints: endpoints}
 	newModel, _ := m.Update(msg)

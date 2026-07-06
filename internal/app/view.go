@@ -8,6 +8,7 @@ import (
 	"unicode/utf8"
 
 	"endpoint-tui/internal/api"
+	"endpoint-tui/internal/config"
 	"endpoint-tui/internal/ui"
 )
 
@@ -274,21 +275,50 @@ func (m Model) viewSettings() string {
 	if m.config.BaseURL == "" {
 		b.WriteString("\n")
 		b.WriteString(ui.WarningStyle.Render(m.text(
-			"Configure a base URL before using Endpoint TUI. Example: http://127.0.0.1:8080",
-			"使用前请配置接口地址。示例：http://127.0.0.1:8080",
+			"Choose a public server or select custom deployment before using Endpoint TUI.",
+			"使用前请选择公共服务器，或选择自部署并填写服务器地址。",
 		)))
 	}
 	b.WriteString("\n")
 
-	b.WriteString(ui.LabelStyle.Render(m.text("Base URL:", "接口地址：")))
+	b.WriteString(ui.LabelStyle.Render(m.text("Server:", "服务器：")))
 	b.WriteString("\n")
-	b.WriteString(m.settingsBaseURL.View())
-	b.WriteString("\n\n")
+	if len(m.publicInstances) == 0 {
+		b.WriteString(ui.WarningStyle.Render(m.text("No public servers found", "未找到公共服务器列表")))
+		b.WriteString("\n")
+	}
+	for i, instance := range m.publicInstances {
+		line := formatPublicInstanceLine(instance, m.width-6)
+		if m.settingsOptionCursor == 0 && i == m.settingsServerCursor {
+			b.WriteString(ui.SelectedStyle.Render("> " + line))
+		} else {
+			b.WriteString(ui.NormalStyle.Render("  " + line))
+		}
+		b.WriteString("\n")
+	}
+	customLabel := m.text("Custom deployment", "自部署")
+	if m.settingsOptionCursor == 0 && m.usingCustomServer() {
+		b.WriteString(ui.SelectedStyle.Render("> " + customLabel))
+	} else {
+		b.WriteString(ui.NormalStyle.Render("  " + customLabel))
+	}
+	b.WriteString("\n")
+
+	if m.usingCustomServer() {
+		b.WriteString(ui.LabelStyle.Render(m.text("Base URL:", "服务器地址：")))
+		b.WriteString("\n")
+		b.WriteString(m.settingsBaseURL.View())
+		b.WriteString("\n")
+	} else if instance, ok := m.selectedPublicInstance(); ok {
+		b.WriteString(ui.InfoStyle.Render(m.text("Selected URL: ", "当前地址：") + instance.URL))
+		b.WriteString("\n")
+	}
+	b.WriteString("\n")
 
 	b.WriteString(ui.LabelStyle.Render(m.text("Default format:", "默认格式：")))
 	b.WriteString("\n")
 	for i, enc := range m.encodings {
-		if m.settingsOptionCursor == 0 && i == m.settingsEncodingCursor {
+		if m.settingsOptionCursor == 1 && i == m.settingsEncodingCursor {
 			b.WriteString(ui.SelectedStyle.Render("> " + enc))
 		} else {
 			b.WriteString(ui.NormalStyle.Render("  " + enc))
@@ -301,7 +331,7 @@ func (m Model) viewSettings() string {
 	b.WriteString("\n")
 	for i, lang := range m.languages {
 		label := languageLabel(lang)
-		if m.settingsOptionCursor == 1 && i == m.settingsLanguageCursor {
+		if m.settingsOptionCursor == 2 && i == m.settingsLanguageCursor {
 			b.WriteString(ui.SelectedStyle.Render("> " + label))
 		} else {
 			b.WriteString(ui.NormalStyle.Render("  " + label))
@@ -350,6 +380,16 @@ func (m Model) viewError() string {
 	return ui.ContainerStyle.Render(b.String())
 }
 
+func formatPublicInstanceLine(instance config.PublicInstance, width int) string {
+	label := instance.URL
+	if instance.Author != "" {
+		label += "  " + instance.Author
+	}
+	if instance.Date != "" {
+		label += "  " + instance.Date
+	}
+	return ui.Truncate(label, width)
+}
 func formatEndpointLine(number int, ep api.Endpoint, width int) string {
 	path := ep.Path
 	name := ep.Name

@@ -13,6 +13,7 @@ import (
 // Config is the persisted application configuration.
 type Config struct {
 	BaseURL         string `json:"base_url"`
+	ServerMode      string `json:"server_mode,omitempty"`
 	DefaultEncoding string `json:"default_encoding"`
 	Language        string `json:"language"`
 }
@@ -21,6 +22,7 @@ type Config struct {
 func DefaultConfig() Config {
 	return Config{
 		BaseURL:         "",
+		ServerMode:      "public",
 		DefaultEncoding: "json",
 		Language:        "en",
 	}
@@ -89,27 +91,13 @@ func LoadFromPath(path string) (Config, error) {
 		return DefaultConfig(), fmt.Errorf("invalid config JSON: %w", err)
 	}
 
-	if !validEncodings[cfg.DefaultEncoding] {
-		cfg.DefaultEncoding = "json"
-	}
-	if !validLanguages[cfg.Language] {
-		cfg.Language = "en"
-	}
-
+	normalizeConfig(&cfg)
 	return cfg, nil
 }
 
 // Save writes the config file.
 func Save(cfg Config) error {
-	if !validEncodings[cfg.DefaultEncoding] {
-		cfg.DefaultEncoding = "json"
-	}
-	if !validLanguages[cfg.Language] {
-		cfg.Language = "en"
-	}
-
-	cfg.BaseURL = strings.TrimSpace(cfg.BaseURL)
-	cfg.BaseURL = strings.TrimRight(cfg.BaseURL, "/")
+	normalizeConfig(&cfg)
 
 	if err := ensureDir(); err != nil {
 		return err
@@ -135,6 +123,24 @@ func Save(cfg Config) error {
 	}
 
 	return nil
+}
+
+func normalizeConfig(cfg *Config) {
+	if !validEncodings[cfg.DefaultEncoding] {
+		cfg.DefaultEncoding = "json"
+	}
+	if !validLanguages[cfg.Language] {
+		cfg.Language = "en"
+	}
+	cfg.BaseURL = strings.TrimSpace(cfg.BaseURL)
+	cfg.BaseURL = strings.TrimRight(cfg.BaseURL, "/")
+	if cfg.ServerMode != "public" && cfg.ServerMode != "custom" {
+		if cfg.BaseURL == "" {
+			cfg.ServerMode = "public"
+		} else {
+			cfg.ServerMode = "custom"
+		}
+	}
 }
 
 // ValidateBaseURL validates and normalizes the base URL.

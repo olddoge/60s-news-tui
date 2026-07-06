@@ -38,6 +38,8 @@ type Model struct {
 	discoveryURL string
 
 	settingsBaseURL         textinput.Model
+	publicInstances         []config.PublicInstance
+	settingsServerCursor    int
 	settingsEncodingCursor  int
 	settingsLanguageCursor  int
 	settingsOptionCursor    int
@@ -63,6 +65,8 @@ var Languages = []string{"en", "zh"}
 
 // NewModel creates the application model.
 func NewModel(cfg config.Config, discoveryURL string) Model {
+	instances, _ := config.LoadPublicInstances("")
+	settingsServerCursor := serverCursorForBaseURL(cfg, instances)
 	ti := textinput.New()
 	ti.Placeholder = "for example: http://127.0.0.1:8080"
 	ti.CharLimit = 256
@@ -107,6 +111,8 @@ func NewModel(cfg config.Config, discoveryURL string) Model {
 		config:                 cfg,
 		discoveryURL:           discoveryURL,
 		settingsBaseURL:        ti,
+		publicInstances:        instances,
+		settingsServerCursor:   settingsServerCursor,
 		paramInput:             pi,
 		paramValues:            make(map[string]string),
 		requestParams:          make(map[string]string),
@@ -210,4 +216,40 @@ func (m Model) Init() tea.Cmd {
 		return nil
 	}
 	return fetchEndpointsCmd(m.endpointDiscoveryURL())
+}
+
+func serverCursorForBaseURL(cfg config.Config, instances []config.PublicInstance) int {
+	if cfg.ServerMode == "public" {
+		for i, instance := range instances {
+			if sameBaseURL(cfg.BaseURL, instance.URL) {
+				return i
+			}
+		}
+		if len(instances) > 0 {
+			return 0
+		}
+	}
+	if cfg.BaseURL != "" {
+		for i, instance := range instances {
+			if sameBaseURL(cfg.BaseURL, instance.URL) {
+				return i
+			}
+		}
+	}
+	return len(instances)
+}
+
+func sameBaseURL(a, b string) bool {
+	return strings.TrimRight(strings.TrimSpace(a), "/") == strings.TrimRight(strings.TrimSpace(b), "/")
+}
+
+func (m Model) usingCustomServer() bool {
+	return m.settingsServerCursor >= len(m.publicInstances)
+}
+
+func (m Model) selectedPublicInstance() (config.PublicInstance, bool) {
+	if m.settingsServerCursor < 0 || m.settingsServerCursor >= len(m.publicInstances) {
+		return config.PublicInstance{}, false
+	}
+	return m.publicInstances[m.settingsServerCursor], true
 }

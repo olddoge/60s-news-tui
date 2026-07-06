@@ -163,3 +163,26 @@ func TestValidateBaseURL(t *testing.T) {
 		})
 	}
 }
+
+func TestLoadPublicInstances(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "public-instance.json")
+	content := `{"server":[{"url":"api.example.com/base","author":"tester","date":"2026-01-02"},{"url":"https://ready.example.com/","author":"ready"},{"url":""}]}`
+	if err := os.WriteFile(path, []byte(content), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	instances, err := config.LoadPublicInstances(path)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(instances) != 2 {
+		t.Fatalf("expected 2 valid public instances, got %d", len(instances))
+	}
+	if instances[0].URL != "https://api.example.com/base" {
+		t.Fatalf("expected URL to be normalized with https, got %q", instances[0].URL)
+	}
+	if instances[1].URL != "https://ready.example.com" {
+		t.Fatalf("expected trailing slash to be removed, got %q", instances[1].URL)
+	}
+}

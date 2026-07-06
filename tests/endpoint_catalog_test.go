@@ -50,12 +50,12 @@ func TestEndpointMenuTexts_LoadsParamsFromJSON(t *testing.T) {
 	if !ok {
 		t.Fatal("expected /v2/qrcode in public endpoint menu catalog")
 	}
-	if len(text.Params) != 1 {
-		t.Fatalf("expected qrcode param from JSON, got %d", len(text.Params))
+	if len(text.Params) != 3 {
+		t.Fatalf("expected qrcode params from JSON, got %d", len(text.Params))
 	}
 	param := text.Params[0]
-	if param.Key != "text" || !param.Required {
-		t.Fatalf("unexpected qrcode param metadata: %#v", param)
+	if param.Key != "text" || param.Required {
+		t.Fatalf("unexpected qrcode text param metadata: %#v", param)
 	}
 	if api.LocalizedParamLabel(param, "en") != "QR Code Text" {
 		t.Fatalf("expected English param label, got %q", api.LocalizedParamLabel(param, "en"))
