@@ -219,6 +219,9 @@ func (m Model) Init() tea.Cmd {
 }
 
 func serverCursorForBaseURL(cfg config.Config, instances []config.PublicInstance) int {
+	if cfg.ServerMode != "custom" && cfg.BaseURL == "" && len(instances) > 0 {
+		return 0
+	}
 	if cfg.ServerMode == "public" {
 		for i, instance := range instances {
 			if sameBaseURL(cfg.BaseURL, instance.URL) {

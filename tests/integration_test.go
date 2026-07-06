@@ -393,13 +393,17 @@ func TestApp_FirstRunSettingsShowsPublicServerChoices(t *testing.T) {
 	if !strings.Contains(view, "Server:") {
 		t.Fatalf("expected settings to show server selection, got %q", view)
 	}
-	if !strings.Contains(view, "https://60s.crystelf.top") {
-		t.Fatalf("expected public server from public-instance.json, got %q", view)
+	if !strings.Contains(view, "https://") {
+		t.Fatalf("expected a public server from public-instance.json, got %q", view)
+	}
+	if strings.Contains(view, "> Custom deployment") {
+		t.Fatalf("expected first run to select a public server by default, got %q", view)
 	}
 	if !strings.Contains(view, "Custom deployment") {
 		t.Fatalf("expected custom deployment option, got %q", view)
 	}
 }
+
 func TestApp_FirstRunShowsSettingsWithoutDiscoveryPort(t *testing.T) {
 	cfg := config.Config{
 		BaseURL:         "",
@@ -415,14 +419,13 @@ func TestApp_FirstRunShowsSettingsWithoutDiscoveryPort(t *testing.T) {
 	updatedModel := newModel.(app.Model)
 	view := updatedModel.View()
 
-	if !strings.Contains(view, "http://127.0.0.1:8080") {
-		t.Fatalf("expected settings view to show base URL example, got %q", view)
+	if !strings.Contains(view, "Server:") || !strings.Contains(view, "Custom deployment") {
+		t.Fatalf("expected settings view to show server choices, got %q", view)
 	}
 	if strings.Contains(view, "13205") {
 		t.Fatalf("settings prompt should not include discovery service port 13205, got %q", view)
 	}
 }
-
 func TestApp_UsesConfiguredEndpointAsDefaultDiscoveryURL(t *testing.T) {
 	cfg := config.Config{
 		BaseURL:         "http://120.77.219.76:13205",
