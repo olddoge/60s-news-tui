@@ -24,6 +24,8 @@ func (m Model) View() string {
 		return m.viewEndpointList()
 	case PageEncodingSelect:
 		return m.viewEncodingSelect()
+	case PageParamInput:
+		return m.viewParamInput()
 	case PageResult:
 		return m.viewResult()
 	case PageSettings:
@@ -87,11 +89,12 @@ func (m Model) viewEndpointList() string {
 	}
 
 	for i := start; i < len(indexes) && i < start+listHeight; i++ {
-		ep := m.endpoints[indexes[i]]
+		endpointIndex := indexes[i]
+		ep := m.endpoints[endpointIndex]
 		if i == m.cursor {
-			b.WriteString(ui.SelectedStyle.Render("> " + formatEndpointLine(i+1, ep, m.width-4)))
+			b.WriteString(ui.SelectedStyle.Render("> " + formatEndpointLine(endpointIndex+1, ep, m.width-4)))
 		} else {
-			b.WriteString(ui.NormalStyle.Render("  " + formatEndpointLine(i+1, ep, m.width-4)))
+			b.WriteString(ui.NormalStyle.Render("  " + formatEndpointLine(endpointIndex+1, ep, m.width-4)))
 		}
 		b.WriteString("\n")
 	}
@@ -152,6 +155,50 @@ func (m Model) viewEncodingSelect() string {
 	b.WriteString(ui.RenderHelp([]string{
 		m.text("⬆️⬇️ up/down select", "⬆️⬇️ 上/下 选择"),
 		m.text("🚀 Enter run", "🚀 Enter 执行"),
+		m.text("↩️ Esc back", "↩️ Esc 返回"),
+	}))
+
+	return ui.ContainerStyle.Render(b.String())
+}
+
+func (m Model) viewParamInput() string {
+	var b strings.Builder
+
+	ep := m.SelectedEndpoint()
+	if ep == nil || m.paramCursor < 0 || m.paramCursor >= len(ep.Params) {
+		b.WriteString(m.brandHeader())
+		b.WriteString(ui.WarningStyle.Render(m.text("No parameter to input", "没有需要输入的参数")))
+		return ui.ContainerStyle.Render(b.String())
+	}
+
+	param := ep.Params[m.paramCursor]
+	label := api.LocalizedParamLabel(param, m.config.Language)
+	progress := fmt.Sprintf("%d/%d", m.paramCursor+1, len(ep.Params))
+
+	b.WriteString(m.brandHeader())
+	b.WriteString(ui.RenderTitle(m.text("Request Parameters", "请求参数")))
+	b.WriteString("\n")
+	b.WriteString(ui.InfoStyle.Render(m.text("Endpoint: ", "接口：") + ep.Name))
+	b.WriteString("\n")
+	b.WriteString(ui.InfoStyle.Render(m.text("Path: ", "路径：") + ep.Path))
+	b.WriteString("\n\n")
+	b.WriteString(ui.LabelStyle.Render(m.text("Parameter:", "参数：")))
+	b.WriteString(ui.ValueStyle.Render(label + " (" + param.Key + ") " + progress))
+	b.WriteString("\n")
+	if param.Required {
+		b.WriteString(ui.WarningStyle.Render(m.text("Required", "必填")))
+		b.WriteString("\n")
+	}
+	b.WriteString(m.paramInput.View())
+
+	if m.paramValidationError != "" {
+		b.WriteString("\n")
+		b.WriteString(ui.ErrorStyle.Render(m.paramValidationError))
+	}
+
+	b.WriteString(ui.RenderHelp([]string{
+		m.text("⌨️ type parameter", "⌨️ 输入参数"),
+		m.text("✅ Enter next/run", "✅ Enter 下一项/执行"),
 		m.text("↩️ Esc back", "↩️ Esc 返回"),
 	}))
 
@@ -360,9 +407,9 @@ func safeErrorMessage(err error) string {
 	return msg
 }
 
-func formatResultContent(r api.CurlResult, encoding string) string {
+func formatResultContent(r api.CurlResult, encoding string, width int) string {
 	if r.Cancelled {
-		return "request cancelled"
+		return wrapResultContent("request cancelled", width)
 	}
 
 	if r.Error != nil && r.ExitCode != 0 {
@@ -373,22 +420,59 @@ func formatResultContent(r api.CurlResult, encoding string) string {
 		if r.Stdout != "" {
 			content += "\n\nstdout:\n" + r.Stdout
 		}
-		return content
+		return wrapResultContent(content, width)
 	}
 
 	content := r.Stdout
 	if content == "" {
-		return "(empty response)"
+		return wrapResultContent("(empty response)", width)
 	}
 
 	switch encoding {
 	case "json":
-		return formatJSON(content)
+		return wrapResultContent(formatJSON(content), width)
 	case "markdown", "text":
-		return sanitizeContent(content)
+		return wrapResultContent(sanitizeContent(content), width)
 	default:
-		return sanitizeContent(content)
+		return wrapResultContent(sanitizeContent(content), width)
 	}
+}
+
+func wrapResultContent(content string, width int) string {
+	if width <= 0 {
+		return content
+	}
+	if width < 20 {
+		width = 20
+	}
+
+	lines := strings.Split(content, "\n")
+	wrapped := make([]string, 0, len(lines))
+	for _, line := range lines {
+		wrapped = append(wrapped, wrapResultLine(line, width)...)
+	}
+	return strings.Join(wrapped, "\n")
+}
+
+func wrapResultLine(line string, width int) []string {
+	if line == "" {
+		return []string{""}
+	}
+
+	var lines []string
+	var b strings.Builder
+	column := 0
+	for _, r := range line {
+		if column >= width {
+			lines = append(lines, b.String())
+			b.Reset()
+			column = 0
+		}
+		b.WriteRune(r)
+		column++
+	}
+	lines = append(lines, b.String())
+	return lines
 }
 
 func formatJSON(content string) string {

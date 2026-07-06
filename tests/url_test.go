@@ -139,3 +139,30 @@ func TestBuildURL(t *testing.T) {
 		})
 	}
 }
+
+func TestBuildURLWithParams(t *testing.T) {
+	got, err := urlutil.BuildURLWithParams(
+		"http://localhost:8080",
+		"/v2/qrcode?existing=1",
+		"json",
+		map[string]string{
+			"text":     "hello world",
+			"encoding": "text",
+			" ":        "ignored",
+		},
+	)
+	if err != nil {
+		t.Fatalf("BuildURLWithParams() error = %v", err)
+	}
+
+	if !strings.HasPrefix(got, "http://localhost:8080/v2/qrcode?") {
+		t.Fatalf("BuildURLWithParams() = %v, unexpected prefix", got)
+	}
+	if !urlContainsParams(got, map[string]string{
+		"existing": "1",
+		"text":     "hello world",
+		"encoding": "json",
+	}) {
+		t.Fatalf("BuildURLWithParams() = %v, missing expected params", got)
+	}
+}

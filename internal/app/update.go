@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"strings"
 	"unicode/utf8"
 
 	"endpoint-tui/internal/api"
@@ -34,7 +35,7 @@ func (m Model) startSelectedRequest() (Model, tea.Cmd) {
 	if ep == nil {
 		return m, nil
 	}
-	requestURL, err := urlutil.BuildURL(m.config.BaseURL, ep.Path, m.SelectedEncoding())
+	requestURL, err := urlutil.BuildURLWithParams(m.config.BaseURL, ep.Path, m.SelectedEncoding(), m.requestParams)
 	if err != nil {
 		m.loadErr = err
 		m.page = PageError
@@ -46,6 +47,63 @@ func (m Model) startSelectedRequest() (Model, tea.Cmd) {
 	m.page = PageLoading
 	executor := api.NewCurlExecutor()
 	return m, executeCurlCmd(requestURL, executor)
+}
+
+func (m Model) startEndpointFlow() (Model, tea.Cmd) {
+	ep := m.SelectedEndpoint()
+	if ep == nil {
+		return m, nil
+	}
+	if len(ep.Params) == 0 {
+		m.requestParams = make(map[string]string)
+		return m.startSelectedRequest()
+	}
+	m.paramCursor = 0
+	m.paramValues = make(map[string]string)
+	m.paramValidationError = ""
+	m.configureParamInput(ep.Params[0])
+	m.page = PageParamInput
+	return m, nil
+}
+
+func (m *Model) configureParamInput(param api.EndpointParam) {
+	m.paramInput.SetValue(m.paramValues[param.Key])
+	m.paramInput.Placeholder = m.text("Please enter ", "请输入") + api.LocalizedParamLabel(param, m.config.Language)
+	m.paramInput.Focus()
+}
+
+func (m Model) completeCurrentParam() (Model, tea.Cmd) {
+	ep := m.SelectedEndpoint()
+	if ep == nil || m.paramCursor < 0 || m.paramCursor >= len(ep.Params) {
+		m.page = PageEndpointList
+		return m, nil
+	}
+
+	param := ep.Params[m.paramCursor]
+	value := strings.TrimSpace(m.paramInput.Value())
+	if param.Required && value == "" {
+		m.paramValidationError = m.text("This parameter is required", "此参数必填")
+		return m, nil
+	}
+	if value == "" {
+		delete(m.paramValues, param.Key)
+	} else {
+		m.paramValues[param.Key] = value
+	}
+
+	if m.paramCursor < len(ep.Params)-1 {
+		m.paramCursor++
+		m.paramValidationError = ""
+		m.configureParamInput(ep.Params[m.paramCursor])
+		return m, nil
+	}
+
+	m.requestParams = make(map[string]string, len(m.paramValues))
+	for key, value := range m.paramValues {
+		m.requestParams[key] = value
+	}
+	m.paramValidationError = ""
+	return m.startSelectedRequest()
 }
 
 func (m Model) saveSettings() (Model, tea.Cmd) {
@@ -99,7 +157,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c":
 			return m, tea.Quit
 		case "q":
-			if m.page == PageEndpointList && m.searching {
+			if (m.page == PageEndpointList && m.searching) || m.page == PageParamInput {
 				break
 			}
 			return m, tea.Quit
@@ -127,7 +185,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.loading = false
 		m.loadingMessage = ""
 		m.result = msg.Result
-		m.viewport.SetContent(formatResultContent(msg.Result, m.SelectedEncoding()))
+		m.viewport.SetContent(formatResultContent(msg.Result, m.SelectedEncoding(), m.viewport.Width))
 		m.viewport.GotoTop()
 		m.page = PageResult
 		return m, nil
@@ -140,6 +198,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m.updateEndpointList(msg)
 	case PageEncodingSelect:
 		return m.updateEncodingSelect(msg)
+	case PageParamInput:
+		return m.updateParamInput(msg)
 	case PageResult:
 		return m.updateResult(msg)
 	case PageSettings:
@@ -199,7 +259,7 @@ func (m Model) updateEndpointList(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.cursor++
 			}
 		case "enter":
-			return m.startSelectedRequest()
+			return m.startEndpointFlow()
 		case "/":
 			m.searching = true
 		case "r":
@@ -255,6 +315,27 @@ func (m Model) updateEncodingSelect(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 	return m, nil
+}
+
+func (m Model) updateParamInput(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "enter":
+			return m.completeCurrentParam()
+		case "esc":
+			m.page = PageEndpointList
+			m.paramValidationError = ""
+			return m, nil
+		default:
+			m.paramValidationError = ""
+		}
+	}
+
+	m.paramInput, cmd = m.paramInput.Update(msg)
+	return m, cmd
 }
 
 func (m Model) updateResult(msg tea.Msg) (tea.Model, tea.Cmd) {

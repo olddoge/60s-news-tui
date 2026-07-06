@@ -1,0 +1,771 @@
+{
+  "/v2/60s": {
+    "emoji": "📰",
+    "names": {
+      "zh": "每天 60 秒读懂世界",
+      "en": "Understand the World in 60 Seconds"
+    },
+    "params": [
+      {
+        "key": "date",
+        "labels": {
+          "zh": "日期：YYYY-MM-DD",
+          "en": "Date：YYYY-MM-DD"
+        },
+        "required": false
+      }
+    ]
+  },
+  "/v2/60s/rss": {
+    "emoji": "📡",
+    "names": {
+      "zh": "rss 订阅",
+      "en": "RSS Feed"
+    }
+  },
+  "/v2/answer": {
+    "emoji": "📖",
+    "names": {
+      "zh": "随机答案之书",
+      "en": "Random Book of Answers"
+    }
+  },
+  "/v2/baike": {
+    "emoji": "📚",
+    "names": {
+      "zh": "百度百科词条",
+      "en": "Baidu Baike Entry"
+    },
+    "params": [
+      {
+        "key": "word",
+        "labels": {
+          "zh": "词条",
+          "en": "Entry"
+        },
+        "required": true
+      }
+    ]
+  },
+  "/v2/bili": {
+    "emoji": "📺",
+    "names": {
+      "zh": "哔哩哔哩热搜",
+      "en": "Bilibili Trending Searches"
+    }
+  },
+  "/v2/bing": {
+    "emoji": "🖼️",
+    "names": {
+      "zh": "必应每日壁纸",
+      "en": "Bing Daily Wallpaper"
+    }
+  },
+  "/v2/changya": {
+    "emoji": "🎤",
+    "names": {
+      "zh": "随机唱歌音频",
+      "en": "Random Singing Audio"
+    }
+  },
+  "/v2/chemical": {
+    "emoji": "⚗️",
+    "names": {
+      "zh": "",
+      "en": ""
+    }
+  },
+  "/v2/douyin": {
+    "emoji": "🎵",
+    "names": {
+      "zh": "抖音热搜",
+      "en": "Douyin Trending Searches"
+    }
+  },
+  "/v2/duanzi": {
+    "emoji": "😄",
+    "names": {
+      "zh": "随机搞笑段子",
+      "en": "Random Jokes"
+    }
+  },
+  "/v2/epic": {
+    "emoji": "🎮",
+    "names": {
+      "zh": "Epic Games 游戏",
+      "en": "Epic Games"
+    }
+  },
+  "/v2/exchange-rate": {
+    "emoji": "💱",
+    "names": {
+      "zh": "当日货币汇率",
+      "en": "Daily Exchange Rates"
+    }
+  },
+  "/v2/fabing": {
+    "emoji": "📝",
+    "names": {
+      "zh": "随机发病文学",
+      "en": "Random Melodramatic Copy"
+    }
+  },
+  "/v2/hitokoto": {
+    "emoji": "💬",
+    "names": {
+      "zh": "随机一言",
+      "en": "Random Hitokoto Quote"
+    }
+  },
+  "/v2/ip": {
+    "emoji": "🌐",
+    "names": {
+      "zh": "公网 IP 地址",
+      "en": "Public IP Address"
+    }
+  },
+  "/v2/kfc": {
+    "emoji": "🍗",
+    "names": {
+      "zh": "随机 KFC 文案",
+      "en": "Random KFC Copy"
+    }
+  },
+  "/v2/luck": {
+    "emoji": "🍀",
+    "names": {
+      "zh": "随机运势",
+      "en": "Random Fortune"
+    }
+  },
+  "/v2/today-in-history": {
+    "emoji": "📅",
+    "names": {
+      "zh": "历史上的今天",
+      "en": "Today in History"
+    },
+    "params": [
+      {
+        "key": "date",
+        "labels": {
+          "zh": "日期：YYYY-MM-DD",
+          "en": "Date：YYYY-MM-DD"
+        },
+        "required": false
+      }
+    ]
+  },
+  "/v2/toutiao": {
+    "emoji": "🔥",
+    "names": {
+      "zh": "头条热搜榜",
+      "en": "Toutiao Trending List"
+    }
+  },
+  "/v2/weibo": {
+    "emoji": "📣",
+    "names": {
+      "zh": "微博热搜",
+      "en": "Weibo Trending Searches"
+    }
+  },
+  "/v2/zhihu": {
+    "emoji": "💡",
+    "names": {
+      "zh": "知乎话题榜",
+      "en": "Zhihu Topic Rankings"
+    }
+  },
+  "/v2/lunar": {
+    "emoji": "🌙",
+    "names": {
+      "zh": "农历信息",
+      "en": "Lunar Calendar Info"
+    }
+  },
+  "/v2/ai-news": {
+    "emoji": "🤖",
+    "names": {
+      "zh": "AI 资讯快报",
+      "en": "AI News Briefing"
+    },
+    "params": [
+      {
+        "key": "date",
+        "labels": {
+          "zh": "日期：YYYY-MM-DD",
+          "en": "Date：YYYY-MM-DD"
+        },
+        "required": false
+      }
+    ]
+  },
+  "/v2/it-news": {
+    "emoji": "💻",
+    "names": {
+      "zh": "实时 IT 资讯",
+      "en": "Real-Time IT News"
+    }
+  },
+  "/v2/it-news/rank": {
+    "emoji": "🏆",
+    "names": {
+      "zh": "IT 之家热门榜单",
+      "en": "ITHome Hot Rankings"
+    },
+    "params": [
+      {
+        "key": "type",
+        "labels": {
+          "zh": "榜单类型，支持日榜（day）、周榜（week）、月榜（month）。默认日榜。",
+          "en": "Rank Type: day or week or month, default is day"
+        },
+        "required": false
+      }
+    ]
+  },
+  "/v2/awesome-js": {
+    "emoji": "🧩",
+    "names": {
+      "zh": "随机 JS 趣味题",
+      "en": "Random JavaScript Quiz"
+    }
+  },
+  "/v2/qrcode": {
+    "emoji": "🔳",
+    "names": {
+      "zh": "生成二维码",
+      "en": "Generate QR Code"
+    },
+    "params": [
+      {
+        "key": "text",
+        "labels": {
+          "zh": "二维码内容",
+          "en": "QR Code Text"
+        },
+        "required": false
+      },
+      {
+        "key": "size",
+        "labels": {
+          "zh": "尺寸数字，默认 256",
+          "en": "Size Number"
+        },
+        "required": false
+      },
+      {
+        "key": "level",
+        "labels": {
+          "zh": "容错 L、M、Q、H 默认 M",
+          "en": "Correction Level"
+        },
+        "required": false
+      }
+    ]
+  },
+  "/v2/dad-joke": {
+    "emoji": "🥶",
+    "names": {
+      "zh": "随机冷笑话",
+      "en": "Random Dad Joke"
+    }
+  },
+  "/v2/rednote": {
+    "emoji": "📕",
+    "names": {
+      "zh": "小红书热点",
+      "en": "Rednote Hot Topics"
+    }
+  },
+  "/v2/dongchedi": {
+    "emoji": "🚗",
+    "names": {
+      "zh": "懂车帝热搜",
+      "en": "Dongchedi Trending Searches"
+    }
+  },
+  "/v2/moyu": {
+    "emoji": "🐟",
+    "names": {
+      "zh": "摸鱼日报",
+      "en": "Workday Slack-Off Daily"
+    }
+  },
+  "/v2/quark": {
+    "emoji": "🔎",
+    "names": {
+      "zh": "夸克热点",
+      "en": "Quark Hot Topics"
+    }
+  },
+  "/v2/whois": {
+    "emoji": "🪪",
+    "names": {
+      "zh": "Whois 查询",
+      "en": "Whois Lookup"
+    },
+    "params": [
+      {
+        "key": "domain",
+        "labels": {
+          "zh": "域名",
+          "en": "Domain"
+        },
+        "required": true
+      }
+    ]
+  },
+  "/v2/health": {
+    "emoji": "💪",
+    "names": {
+      "zh": "身体健康分析",
+      "en": "Health Analysis"
+    },
+    "params": [
+      {
+        "key": "height",
+        "labels": {
+          "zh": "身高，单位 cm",
+          "en": "Height(cm)"
+        },
+        "required": true
+      },
+      {
+        "key": "weight",
+        "labels": {
+          "zh": "体重，单位 kg",
+          "en": "weight(kg)"
+        },
+        "required": true
+      },
+      {
+        "key": "age",
+        "labels": {
+          "zh": "年龄，整数",
+          "en": "age"
+        },
+        "required": true
+      },
+      {
+        "key": "gender",
+        "labels": {
+          "zh": "male 男，female 女",
+          "en": "male or female"
+        },
+        "required": true
+      }
+    ]
+  },
+  "/v2/password": {
+    "emoji": "🔐",
+    "names": {
+      "zh": "密码生成器",
+      "en": "Password Generator"
+    },
+    "params": [
+      {
+        "key": "length",
+        "labels": {
+          "zh": "密码长度",
+          "en": "Password Length"
+        },
+        "required": true
+      }
+    ]
+  },
+  "/v2/password/check": {
+    "emoji": "🛡️",
+    "names": {
+      "zh": "密码强度检测",
+      "en": "Password Strength Check"
+    },
+    "params": [
+      {
+        "key": "password",
+        "labels": {
+          "zh": "密码",
+          "en": "Password"
+        },
+        "required": true
+      }
+    ]
+  },
+  "/v2/maoyan/all/movie": {
+    "emoji": "🎬",
+    "names": {
+      "zh": "猫眼全球票房总榜",
+      "en": "Maoyan Global Box Office Rankings"
+    }
+  },
+  "/v2/maoyan/realtime/movie": {
+    "emoji": "🎟️",
+    "names": {
+      "zh": "猫眼电影实时票房",
+      "en": "Maoyan Real-Time Movie Box Office"
+    }
+  },
+  "/v2/maoyan/realtime/tv": {
+    "emoji": "📺",
+    "names": {
+      "zh": "猫眼电视收视排行",
+      "en": "Maoyan Real-Time TV Ratings"
+    }
+  },
+  "/v2/maoyan/realtime/web": {
+    "emoji": "🌡️",
+    "names": {
+      "zh": "猫眼网剧实时热度",
+      "en": "Maoyan Real-Time Web Series Heat"
+    }
+  },
+  "/v2/hacker-news/new": {
+    "emoji": "🆕",
+    "names": {
+      "zh": "Hacker News 新帖",
+      "en": "Hacker News New"
+    }
+  },
+  "/v2/hacker-news/top": {
+    "emoji": "⬆️",
+    "names": {
+      "zh": "Hacker News 排行",
+      "en": "Hacker News Top"
+    }
+  },
+  "/v2/hacker-news/best": {
+    "emoji": "⭐",
+    "names": {
+      "zh": "Hacker News 最佳",
+      "en": "Hacker News Best"
+    }
+  },
+  "/v2/baidu/hot": {
+    "emoji": "🔥",
+    "names": {
+      "zh": "百度实时热搜",
+      "en": "Baidu Real-Time Hot Searches"
+    }
+  },
+  "/v2/baidu/teleplay": {
+    "emoji": "📺",
+    "names": {
+      "zh": "百度电视剧榜",
+      "en": "Baidu TV Drama Rankings"
+    }
+  },
+  "/v2/baidu/tieba": {
+    "emoji": "💬",
+    "names": {
+      "zh": "百度贴吧话题榜",
+      "en": "Baidu Tieba Topic Rankings"
+    }
+  },
+  "/v2/weather/realtime": {
+    "emoji": "🌤️",
+    "names": {
+      "zh": "实时天气",
+      "en": "Real-Time Weather"
+    },
+    "params": [
+      {
+        "key": "query",
+        "labels": {
+          "zh": "地区",
+          "en": "Region"
+        },
+        "required": false
+      }
+    ]
+  },
+  "/v2/weather/forecast": {
+    "emoji": "☔",
+    "names": {
+      "zh": "天气预报",
+      "en": "Weather Forecast"
+    },
+    "params": [
+      {
+        "key": "query",
+        "labels": {
+          "zh": "地区",
+          "en": "Region"
+        },
+        "required": false
+      },
+      {
+        "key": "days",
+        "labels": {
+          "zh": "未来天数",
+          "en": "days"
+        },
+        "required": false
+      }
+    ]
+  },
+  "/v2/ncm-rank/list": {
+    "emoji": "🎧",
+    "names": {
+      "zh": "网易云榜单列表",
+      "en": "NetEase Cloud Music Rankings"
+    }
+  },
+  "/v2/ncm-rank/:id": {
+    "emoji": "🎶",
+    "names": {
+      "zh": "网易云榜单详情",
+      "en": "NetEase Cloud Music Ranking Details"
+    },
+    "params": [
+      {
+        "key": "id",
+        "labels": {
+          "zh": "榜单 ID",
+          "en": "Ranking ID"
+        },
+        "required": true
+      }
+    ]
+  },
+  "/v2/color/random": {
+    "emoji": "🎨",
+    "names": {
+      "zh": "随机颜色/颜色转换",
+      "en": "Random Color and Color Conversion"
+    }
+  },
+  "/v2/color/palette": {
+    "emoji": "🌈",
+    "names": {
+      "zh": "配色方案/色彩搭配",
+      "en": "Color Palette and Matching"
+    }
+  },
+  "/v2/lyric": {
+    "emoji": "🎼",
+    "names": {
+      "zh": "歌词搜索",
+      "en": "Lyric Search"
+    },
+    "params": [
+      {
+        "key": "query",
+        "labels": {
+          "zh": "歌曲名称",
+          "en": "music"
+        },
+        "required": true
+      }
+    ]
+  },
+  "/v2/fuel-price": {
+    "emoji": "⛽",
+    "names": {
+      "zh": "汽油价格",
+      "en": "Fuel Prices"
+    },
+    "params" : [
+      {
+        "key": "region",
+        "labels": {
+          "zh": "区域",
+          "en": "Region"
+        },
+        "required": false
+      }
+    ]
+  },
+  "/v2/gold-price": {
+    "emoji": "🥇",
+    "names": {
+      "zh": "黄金价格",
+      "en": "Gold Prices"
+    }
+  },
+  "/v2/olympics": {
+    "emoji": "🏅",
+    "names": {
+      "zh": "奥运奖牌榜",
+      "en": "Olympic Medal Table"
+    }
+  },
+  "/v2/olympics/events": {
+    "emoji": "🏟️",
+    "names": {
+      "zh": "",
+      "en": ""
+    }
+  },
+  "/v2/douban/weekly/movie": {
+    "emoji": "🎞️",
+    "names": {
+      "zh": "豆瓣全球口碑电影榜",
+      "en": "Douban Weekly Global Movie Picks"
+    }
+  },
+  "/v2/douban/weekly/tv_chinese": {
+    "emoji": "📺",
+    "names": {
+      "zh": "豆瓣华语口碑剧集榜",
+      "en": "Douban Weekly Chinese TV Picks"
+    }
+  },
+  "/v2/douban/weekly/tv_global": {
+    "emoji": "🌍",
+    "names": {
+      "zh": "豆瓣全球口碑剧集榜",
+      "en": "Douban Weekly Global TV Picks"
+    }
+  },
+  "/v2/douban/weekly/show_chinese": {
+    "emoji": "🎭",
+    "names": {
+      "zh": "豆瓣华语口碑综艺榜",
+      "en": "Douban Weekly Chinese Variety Picks"
+    }
+  },
+  "/v2/douban/weekly/show_global": {
+    "emoji": "🌐",
+    "names": {
+      "zh": "豆瓣全球口碑综艺榜",
+      "en": "Douban Weekly Global Variety Picks"
+    }
+  },
+  "/v2/og": {
+    "emoji": "🔗",
+    "names": {
+      "zh": "链接 OG 信息",
+      "en": "Link Open Graph Info"
+    },
+    "params": [
+      {
+        "key": "url",
+        "labels": {
+          "zh": "链接",
+          "en": "URL"
+        },
+        "required": true
+      }
+    ]
+  },
+  "/v2/hash": {
+    "emoji": "#️⃣",
+    "names": {
+      "zh": "哈希/解压/压缩",
+      "en": "Hash, Decompression, and Compression"
+    },
+    "params": [
+      {
+        "key": "content",
+        "labels": {
+          "zh": "内容",
+          "en": "content"
+        },
+        "required": true
+      }
+    ]
+  },
+  "/v2/fanyi": {
+    "emoji": "🌏",
+    "names": {
+      "zh": "在线翻译（支持 109 种语言）",
+      "en": "Online Translation (109 Languages)"
+    },
+    "params": [
+      {
+        "key": "text",
+        "labels": {
+          "zh": "翻译文本",
+          "en": "Text"
+        },
+        "required": true
+      },
+      {
+        "key": "from",
+        "labels": {
+          "zh": "目标语言",
+          "en": "Target Language"
+        },
+        "required": false
+      },
+      {
+        "key": "to",
+        "labels": {
+          "zh": "目标语言",
+          "en": "Target Language"
+        },
+        "required": false
+      }
+    ]
+  },
+  "/v2/fanyi/langs": {
+    "emoji": "🈯",
+    "names": {
+      "zh": "在线翻译支持的语言列表",
+      "en": "Supported Translation Languages"
+    }
+  },
+  "/v2/beta/kuan": {
+    "emoji": "🧪",
+    "names": {
+      "zh": "",
+      "en": ""
+    }
+  },
+  "/v2/beta/qq/profile": {
+    "emoji": "👤",
+    "names": {
+      "zh": "",
+      "en": ""
+    }
+  },
+  "/v2/exchange_rate": {
+    "emoji": "💱",
+    "names": {
+      "zh": "",
+      "en": ""
+    }
+  },
+  "/v2/today_in_history": {
+    "emoji": "📅",
+    "names": {
+      "zh": "",
+      "en": ""
+    }
+  },
+  "/v2/maoyan": {
+    "emoji": "🎬",
+    "names": {
+      "zh": "",
+      "en": ""
+    }
+  },
+  "/v2/baidu/realtime": {
+    "emoji": "🔥",
+    "names": {
+      "zh": "",
+      "en": ""
+    }
+  },
+  "/v2/weather": {
+    "emoji": "🌦️",
+    "names": {
+      "zh": "",
+      "en": ""
+    }
+  },
+  "/v2/ncm-rank": {
+    "emoji": "🎧",
+    "names": {
+      "zh": "",
+      "en": ""
+    }
+  },
+  "/v2/color": {
+    "emoji": "🎨",
+    "names": {
+      "zh": "",
+      "en": ""
+    }
+  }
+}

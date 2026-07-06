@@ -8,8 +8,13 @@ import (
 
 // BuildURL combines a base URL, endpoint path, and encoding query parameter.
 func BuildURL(baseURL, endpoint, encoding string) (string, error) {
+	return BuildURLWithParams(baseURL, endpoint, encoding, nil)
+}
+
+// BuildURLWithParams combines a base URL, endpoint path, extra GET params, and encoding query parameter.
+func BuildURLWithParams(baseURL, endpoint, encoding string, params map[string]string) (string, error) {
 	if strings.HasPrefix(endpoint, "http://") || strings.HasPrefix(endpoint, "https://") {
-		return appendEncoding(endpoint, encoding)
+		return appendQuery(endpoint, encoding, params)
 	}
 
 	baseURL = strings.TrimRight(baseURL, "/")
@@ -19,16 +24,23 @@ func BuildURL(baseURL, endpoint, encoding string) (string, error) {
 	}
 
 	full := baseURL + endpoint
-	return appendEncoding(full, encoding)
+	return appendQuery(full, encoding, params)
 }
 
-func appendEncoding(rawURL, encoding string) (string, error) {
+func appendQuery(rawURL, encoding string, params map[string]string) (string, error) {
 	u, err := url.Parse(rawURL)
 	if err != nil {
 		return "", err
 	}
 
 	q := u.Query()
+	for key, value := range params {
+		key = strings.TrimSpace(key)
+		if key == "" {
+			continue
+		}
+		q.Set(key, value)
+	}
 	q.Set("encoding", encoding)
 	u.RawQuery = q.Encode()
 

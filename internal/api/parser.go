@@ -9,8 +9,9 @@ import (
 
 // Endpoint is the normalized endpoint representation.
 type Endpoint struct {
-	Name string
-	Path string
+	Name   string
+	Path   string
+	Params []EndpointParam
 }
 
 // ParseEndpoints parses endpoint data in supported API response formats.

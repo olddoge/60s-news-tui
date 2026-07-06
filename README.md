@@ -150,6 +150,12 @@ go vet ./...
 gofmt -w .
 ```
 
+## 手动编译当前测试版：
+
+```
+go build -o endpoint-tui-test.exe .
+```
+
 ## 相关项目
 
 - [60s](https://github.com/vikiboss/60s) —— 每日精选新闻 API

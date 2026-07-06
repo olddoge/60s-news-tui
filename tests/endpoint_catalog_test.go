@@ -40,8 +40,28 @@ func TestEndpointMenuTexts_IsPublicCatalog(t *testing.T) {
 	if !ok {
 		t.Fatal("expected /v2/60s in public endpoint menu catalog")
 	}
-	if text.Zh != "每天 60 秒读懂世界" || text.En != "Understand the World in 60 Seconds" || text.Emoji != "📰" {
+	if text.Names["zh"] != "每天 60 秒读懂世界" || text.Names["en"] != "Understand the World in 60 Seconds" || text.Emoji != "📰" {
 		t.Fatalf("unexpected public catalog text: %#v", text)
+	}
+}
+
+func TestEndpointMenuTexts_LoadsParamsFromJSON(t *testing.T) {
+	text, ok := api.EndpointMenuTexts["/v2/qrcode"]
+	if !ok {
+		t.Fatal("expected /v2/qrcode in public endpoint menu catalog")
+	}
+	if len(text.Params) != 1 {
+		t.Fatalf("expected qrcode param from JSON, got %d", len(text.Params))
+	}
+	param := text.Params[0]
+	if param.Key != "text" || !param.Required {
+		t.Fatalf("unexpected qrcode param metadata: %#v", param)
+	}
+	if api.LocalizedParamLabel(param, "en") != "QR Code Text" {
+		t.Fatalf("expected English param label, got %q", api.LocalizedParamLabel(param, "en"))
+	}
+	if api.LocalizedParamLabel(param, "zh") != "二维码内容" {
+		t.Fatalf("expected Chinese param label, got %q", api.LocalizedParamLabel(param, "zh"))
 	}
 }
 
@@ -63,7 +83,7 @@ func TestLocalizeEndpointsForLanguage_UsesEnglishNames(t *testing.T) {
 
 func TestLocalizeEndpoints_AllowsEmptyEmoji(t *testing.T) {
 	original := api.EndpointMenuTexts["/v2/60s"]
-	api.EndpointMenuTexts["/v2/60s"] = api.EndpointMenuText{Zh: original.Zh, En: original.En}
+	api.EndpointMenuTexts["/v2/60s"] = api.EndpointMenuText{Names: original.Names}
 	defer func() {
 		api.EndpointMenuTexts["/v2/60s"] = original
 	}()

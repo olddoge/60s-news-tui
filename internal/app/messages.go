@@ -9,6 +9,7 @@ const (
 	PageLoading Page = iota
 	PageEndpointList
 	PageEncodingSelect
+	PageParamInput
 	PageResult
 	PageSettings
 	PageError

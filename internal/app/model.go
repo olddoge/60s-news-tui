@@ -1,6 +1,7 @@
 package app
 
 import (
+	"strconv"
 	"strings"
 
 	"endpoint-tui/internal/api"
@@ -24,6 +25,12 @@ type Model struct {
 	encodingCursor int
 	languages      []string
 	languageCursor int
+
+	paramCursor          int
+	paramInput           textinput.Model
+	paramValues          map[string]string
+	paramValidationError string
+	requestParams        map[string]string
 
 	result api.CurlResult
 
@@ -63,6 +70,10 @@ func NewModel(cfg config.Config, discoveryURL string) Model {
 	ti.SetValue(cfg.BaseURL)
 	ti.Focus()
 
+	pi := textinput.New()
+	pi.CharLimit = 512
+	pi.Width = 60
+
 	encIdx := 0
 	for i, e := range Encodings {
 		if e == cfg.DefaultEncoding {
@@ -96,6 +107,9 @@ func NewModel(cfg config.Config, discoveryURL string) Model {
 		config:                 cfg,
 		discoveryURL:           discoveryURL,
 		settingsBaseURL:        ti,
+		paramInput:             pi,
+		paramValues:            make(map[string]string),
+		requestParams:          make(map[string]string),
 		settingsEncodingCursor: encIdx,
 		settingsLanguageCursor: langIdx,
 		loading:                loading,
@@ -144,15 +158,38 @@ func (m Model) SettingsSelectedLanguage() string {
 
 func (m Model) filteredEndpointIndexes() []int {
 	query := strings.TrimSpace(strings.ToLower(m.search))
+	numberQuery, hasNumberQuery := parseEndpointNumberQuery(query)
 	indexes := make([]int, 0, len(m.endpoints))
 	for i, ep := range m.endpoints {
-		if query == "" ||
-			strings.Contains(strings.ToLower(ep.Name), query) ||
-			strings.Contains(strings.ToLower(ep.Path), query) {
+		if query == "" || endpointMatchesSearch(i, ep, query, numberQuery, hasNumberQuery) {
 			indexes = append(indexes, i)
 		}
 	}
 	return indexes
+}
+
+func endpointMatchesSearch(index int, ep api.Endpoint, query string, numberQuery int, hasNumberQuery bool) bool {
+	if hasNumberQuery {
+		return index+1 == numberQuery
+	}
+	return strings.Contains(strings.ToLower(ep.Name), query) ||
+		strings.Contains(strings.ToLower(ep.Path), query)
+}
+
+func parseEndpointNumberQuery(query string) (int, bool) {
+	if query == "" {
+		return 0, false
+	}
+	for _, r := range query {
+		if r < '0' || r > '9' {
+			return 0, false
+		}
+	}
+	number, err := strconv.Atoi(query)
+	if err != nil || number <= 0 {
+		return 0, false
+	}
+	return number, true
 }
 
 func (m Model) endpointDiscoveryURL() string {

@@ -178,6 +178,40 @@ func TestApp_SearchFiltersEndpointList(t *testing.T) {
 	}
 }
 
+func TestApp_SearchCanFindEndpointByNumber(t *testing.T) {
+	cfg := config.Config{
+		BaseURL:         "http://localhost:13205",
+		DefaultEncoding: "json",
+		Language:        "en",
+	}
+
+	m := app.NewModel(cfg, api.GetDiscoveryURL())
+	newModel, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 30})
+	m = newModel.(app.Model)
+	endpoints := []api.Endpoint{
+		{Name: "/v2/60s", Path: "/v2/60s"},
+		{Name: "/v2/answer", Path: "/v2/answer"},
+		{Name: "/v2/qrcode", Path: "/v2/qrcode"},
+	}
+	newModel, _ = m.Update(app.EndpointsLoadedMsg{Endpoints: endpoints})
+	m = newModel.(app.Model)
+
+	newModel, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
+	m = newModel.(app.Model)
+	newModel, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'2'}})
+	m = newModel.(app.Model)
+
+	view := m.View()
+	if strings.Contains(view, "/v2/qrcode") {
+		t.Fatalf("expected numeric search to hide endpoints outside sequence 2, got %q", view)
+	}
+	if !strings.Contains(view, "2. ") || !strings.Contains(view, "/v2/answer") {
+		t.Fatalf("expected numeric search to show original endpoint number 2, got %q", view)
+	}
+	if ep := m.SelectedEndpoint(); ep == nil || ep.Path != "/v2/answer" {
+		t.Fatalf("expected selected endpoint to be sequence 2, got %#v", ep)
+	}
+}
 func TestApp_SearchModeCanMoveSelection(t *testing.T) {
 	cfg := config.Config{
 		BaseURL:         "http://localhost:13205",
@@ -267,6 +301,71 @@ func TestApp_EnterUsesDefaultEncodingAndRequests(t *testing.T) {
 	}
 	if got := updatedModel.SelectedEncoding(); got != "markdown" {
 		t.Errorf("expected default encoding markdown, got %s", got)
+	}
+}
+
+func TestApp_EndpointWithParamsShowsParamInputBeforeRequest(t *testing.T) {
+	cfg := config.Config{
+		BaseURL:         "http://localhost:13205",
+		DefaultEncoding: "json",
+		Language:        "zh",
+	}
+
+	m := app.NewModel(cfg, api.GetDiscoveryURL())
+	newModel, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 30})
+	m = newModel.(app.Model)
+	newModel, _ = m.Update(app.EndpointsLoadedMsg{Endpoints: []api.Endpoint{{Name: "/v2/qrcode", Path: "/v2/qrcode"}}})
+	m = newModel.(app.Model)
+
+	newModel, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = newModel.(app.Model)
+	if cmd != nil {
+		t.Fatal("expected parameter input page before request command")
+	}
+	view := m.View()
+	if !strings.Contains(view, "请求参数") || !strings.Contains(view, "二维码内容") {
+		t.Fatalf("expected localized parameter input view, got %q", view)
+	}
+	if !strings.Contains(view, "请输入二维码内容") {
+		t.Fatalf("expected generated Chinese parameter placeholder, got %q", view)
+	}
+	if strings.Contains(view, "请选择返回格式") {
+		t.Fatalf("parameter input should be independent from encoding selection, got %q", view)
+	}
+
+	for _, r := range "hello q" {
+		newModel, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
+		m = newModel.(app.Model)
+	}
+	newModel, cmd = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	if cmd == nil {
+		t.Fatal("expected request command after parameter input")
+	}
+}
+
+func TestApp_RequiredParamValidation(t *testing.T) {
+	cfg := config.Config{
+		BaseURL:         "http://localhost:13205",
+		DefaultEncoding: "json",
+		Language:        "en",
+	}
+
+	m := app.NewModel(cfg, api.GetDiscoveryURL())
+	newModel, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 30})
+	m = newModel.(app.Model)
+	newModel, _ = m.Update(app.EndpointsLoadedMsg{Endpoints: []api.Endpoint{{Name: "/v2/qrcode", Path: "/v2/qrcode"}}})
+	m = newModel.(app.Model)
+	newModel, _ = m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = newModel.(app.Model)
+
+	newModel, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m = newModel.(app.Model)
+	if cmd != nil {
+		t.Fatal("expected no request command when required param is empty")
+	}
+	view := m.View()
+	if !strings.Contains(view, "This parameter is required") {
+		t.Fatalf("expected required validation message, got %q", view)
 	}
 }
 
@@ -433,6 +532,30 @@ func TestApp_ResultDisplay(t *testing.T) {
 	t.Logf("Result view length: %d chars", len(view))
 }
 
+func TestApp_ResultLongTextWrapsToViewportWidth(t *testing.T) {
+	cfg := config.Config{
+		BaseURL:         "http://localhost:13205",
+		DefaultEncoding: "text",
+	}
+
+	m := app.NewModel(cfg, api.GetDiscoveryURL())
+	newModel, _ := m.Update(tea.WindowSizeMsg{Width: 40, Height: 24})
+	m = newModel.(app.Model)
+	newModel, _ = m.Update(app.EndpointsLoadedMsg{Endpoints: []api.Endpoint{{Name: "/v2/60s", Path: "/v2/60s"}}})
+	m = newModel.(app.Model)
+
+	longLine := strings.Repeat("a", 80)
+	newModel, _ = m.Update(app.CurlResultMsg{Result: api.CurlResult{URL: "http://localhost:13205/v2/60s?encoding=text", Stdout: longLine, ExitCode: 0}})
+	m = newModel.(app.Model)
+
+	view := m.View()
+	if strings.Contains(view, longLine) {
+		t.Fatalf("expected long response line to wrap, got unwrapped content in %q", view)
+	}
+	if !strings.Contains(view, strings.Repeat("a", 36)) {
+		t.Fatalf("expected response to wrap at viewport width, got %q", view)
+	}
+}
 func TestApp_ViewNotEmpty(t *testing.T) {
 	cfg := config.Config{
 		BaseURL:         "http://localhost:13205",
