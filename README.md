@@ -60,7 +60,7 @@
 依赖：Go 1.21+、curl。
 
 ```bash
-git clone https://github.com/your-username/60s-tui.git
+git clone https://github.com/olddoge/60s-tui.git
 cd 60s-tui
 go mod tidy
 go build -o 60s .
