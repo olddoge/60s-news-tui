@@ -105,18 +105,18 @@ func (m Model) viewEndpointList() string {
 
 	if m.searching {
 		b.WriteString(ui.RenderHelp([]string{
-			m.text("type search", "输入搜索"),
-			m.text("Enter finish", "Enter 完成"),
-			m.text("Esc clear", "Esc 清空"),
+			m.text("⌨️ type search", "⌨️ 输入搜索"),
+			m.text("✅ Enter finish", "✅ Enter 完成"),
+			m.text("🧹 Esc clear", "🧹 Esc 清空"),
 		}))
 	} else {
 		b.WriteString(ui.RenderHelp([]string{
-			m.text("up/down select", "上/下 选择"),
-			m.text("/ search", "/ 搜索"),
-			m.text("Enter request", "Enter 请求"),
-			m.text("s settings", "s 设置"),
-			m.text("r refresh", "r 刷新"),
-			m.text("q quit", "q 退出"),
+			m.text("⬆️⬇️ up/down select", "⬆️⬇️ 上/下 选择"),
+			m.text("🔎 / search", "🔎 / 搜索"),
+			m.text("🚀 Enter request", "🚀 Enter 请求"),
+			m.text("⚙️ s settings", "⚙️ s 设置"),
+			m.text("🔄 r refresh", "🔄 r 刷新"),
+			m.text("🚪 q quit", "🚪 q 退出"),
 		}))
 	}
 
@@ -150,9 +150,9 @@ func (m Model) viewEncodingSelect() string {
 	}
 
 	b.WriteString(ui.RenderHelp([]string{
-		m.text("up/down select", "上/下 选择"),
-		m.text("Enter run", "Enter 执行"),
-		m.text("Esc back", "Esc 返回"),
+		m.text("⬆️⬇️ up/down select", "⬆️⬇️ 上/下 选择"),
+		m.text("🚀 Enter run", "🚀 Enter 执行"),
+		m.text("↩️ Esc back", "↩️ Esc 返回"),
 	}))
 
 	return ui.ContainerStyle.Render(b.String())
@@ -209,11 +209,11 @@ func (m Model) viewResult() string {
 	b.WriteString(m.viewport.View())
 
 	b.WriteString(ui.RenderHelp([]string{
-		m.text("up/down/PgUp/PgDn scroll", "上/下/PgUp/PgDn 滚动"),
-		m.text("Home/End jump", "Home/End 跳转"),
-		m.text("r retry", "r 重试"),
-		m.text("b/Esc back", "b/Esc 返回"),
-		m.text("q quit", "q 退出"),
+		m.text("📜 up/down/PgUp/PgDn scroll", "📜 上/下/PgUp/PgDn 滚动"),
+		m.text("⏫ Home/End jump", "⏫ Home/End 跳转"),
+		m.text("🔁 r retry", "🔁 r 重试"),
+		m.text("↩️ b/Esc back", "↩️ b/Esc 返回"),
+		m.text("🚪 q quit", "🚪 q 退出"),
 	}))
 
 	return ui.ContainerStyle.Render(b.String())
@@ -273,10 +273,10 @@ func (m Model) viewSettings() string {
 	}
 
 	b.WriteString(ui.RenderHelp([]string{
-		m.text("Tab switch option", "Tab 切换选项"),
-		m.text("up/down select", "上/下 选择"),
-		m.text("Enter/Ctrl+S save", "Enter/Ctrl+S 保存"),
-		m.text("Esc cancel", "Esc 取消"),
+		m.text("🔀 Tab switch option", "🔀 Tab 切换选项"),
+		m.text("⬆️⬇️ up/down select", "⬆️⬇️ 上/下 选择"),
+		m.text("💾 Enter/Ctrl+S save", "💾 Enter/Ctrl+S 保存"),
+		m.text("↩️ Esc cancel", "↩️ Esc 取消"),
 	}))
 
 	return ui.ContainerStyle.Render(b.String())
@@ -295,9 +295,9 @@ func (m Model) viewError() string {
 	}
 
 	b.WriteString(ui.RenderHelp([]string{
-		m.text("r reload", "r 重新加载"),
-		m.text("s settings", "s 设置"),
-		m.text("q quit", "q 退出"),
+		m.text("🔄 r reload", "🔄 r 重新加载"),
+		m.text("⚙️ s settings", "⚙️ s 设置"),
+		m.text("🚪 q quit", "🚪 q 退出"),
 	}))
 
 	return ui.ContainerStyle.Render(b.String())

@@ -99,6 +99,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "ctrl+c":
 			return m, tea.Quit
 		case "q":
+			if m.page == PageEndpointList && m.searching {
+				break
+			}
 			return m, tea.Quit
 		}
 
@@ -109,7 +112,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.loadErr = msg.Error
 			m.page = PageError
 		} else {
-			m.endpoints = msg.Endpoints
+			m.endpoints = api.LocalizeEndpointsForLanguage(msg.Endpoints, m.config.Language)
 			m.cursor = 0
 			m.loadErr = nil
 			if m.config.BaseURL == "" {

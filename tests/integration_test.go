@@ -74,8 +74,41 @@ func TestApp_ChineseMenuShowsDescriptionAndNumberedList(t *testing.T) {
 	if strings.Index(view, "📰 读懂世界") > strings.Index(view, "接口地址") {
 		t.Fatalf("expected description to render before endpoint list content, got %q", view)
 	}
-	if !strings.Contains(view, "1. /v2/60s") {
-		t.Fatalf("expected numbered endpoint list, got %q", view)
+	if !strings.Contains(view, "1. 📰 每天 60 秒读懂世界") {
+		t.Fatalf("expected numbered Chinese endpoint list with emoji, got %q", view)
+	}
+	if !strings.Contains(view, "2. 📖 随机答案之书") {
+		t.Fatalf("expected second Chinese endpoint list item with emoji, got %q", view)
+	}
+}
+
+func TestApp_EnglishMenuShowsTranslatedEndpointNames(t *testing.T) {
+	cfg := config.Config{
+		BaseURL:         "http://localhost:13205",
+		DefaultEncoding: "json",
+		Language:        "en",
+	}
+
+	m := app.NewModel(cfg, api.GetDiscoveryURL())
+	m.Update(tea.WindowSizeMsg{Width: 100, Height: 30})
+	endpoints := []api.Endpoint{
+		{Name: "/v2/60s", Path: "/v2/60s"},
+		{Name: "/v2/answer", Path: "/v2/answer"},
+	}
+	newModel, _ := m.Update(app.EndpointsLoadedMsg{Endpoints: endpoints})
+	updatedModel := newModel.(app.Model)
+	newModel, _ = updatedModel.Update(tea.WindowSizeMsg{Width: 100, Height: 30})
+	updatedModel = newModel.(app.Model)
+	view := updatedModel.View()
+
+	if !strings.Contains(view, "1. 📰 Understand the World in 60 Seconds") {
+		t.Fatalf("expected numbered English endpoint list with emoji, got %q", view)
+	}
+	if !strings.Contains(view, "2. 📖 Random Book of Answers") {
+		t.Fatalf("expected second English endpoint list item with emoji, got %q", view)
+	}
+	if strings.Contains(view, "随机答案之书") {
+		t.Fatalf("expected English menu to avoid Chinese endpoint text, got %q", view)
 	}
 }
 
@@ -153,23 +186,60 @@ func TestApp_SearchModeCanMoveSelection(t *testing.T) {
 
 	m := app.NewModel(cfg, api.GetDiscoveryURL())
 	endpoints := []api.Endpoint{
-		{Name: "answer one", Path: "/v2/answer-one"},
-		{Name: "answer two", Path: "/v2/answer-two"},
+		{Name: "hn new", Path: "/v2/hacker-news/new"},
+		{Name: "hn top", Path: "/v2/hacker-news/top"},
 	}
 	newModel, _ := m.Update(app.EndpointsLoadedMsg{Endpoints: endpoints})
 	updatedModel := newModel.(app.Model)
 
 	newModel, _ = updatedModel.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
 	updatedModel = newModel.(app.Model)
-	for _, r := range "answer" {
+	for _, r := range "h" {
 		newModel, _ = updatedModel.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{r}})
 		updatedModel = newModel.(app.Model)
 	}
 	newModel, _ = updatedModel.Update(tea.KeyMsg{Type: tea.KeyDown})
 	updatedModel = newModel.(app.Model)
 
-	if ep := updatedModel.SelectedEndpoint(); ep == nil || ep.Path != "/v2/answer-two" {
+	if ep := updatedModel.SelectedEndpoint(); ep == nil || ep.Path != "/v2/hacker-news/top" {
 		t.Fatalf("expected down key to move search selection, got %#v", ep)
+	}
+}
+
+func TestApp_SearchModeAcceptsQWithoutQuitting(t *testing.T) {
+	cfg := config.Config{
+		BaseURL:         "http://localhost:13205",
+		DefaultEncoding: "json",
+		Language:        "zh",
+	}
+
+	m := app.NewModel(cfg, api.GetDiscoveryURL())
+	newModel, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 30})
+	m = newModel.(app.Model)
+	endpoints := []api.Endpoint{
+		{Name: "/v2/qrcode", Path: "/v2/qrcode"},
+		{Name: "/v2/60s", Path: "/v2/60s"},
+	}
+	newModel, _ = m.Update(app.EndpointsLoadedMsg{Endpoints: endpoints})
+	m = newModel.(app.Model)
+
+	newModel, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
+	m = newModel.(app.Model)
+	newModel, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}})
+	m = newModel.(app.Model)
+
+	if cmd != nil {
+		t.Fatal("expected q to be entered as search text, not quit")
+	}
+	view := m.View()
+	if !strings.Contains(view, "搜索：q") {
+		t.Fatalf("expected search query to contain q, got %q", view)
+	}
+	if strings.Contains(view, "/v2/60s") {
+		t.Fatalf("expected q search to hide nonmatching endpoint, got %q", view)
+	}
+	if !strings.Contains(view, "🔳 生成二维码") {
+		t.Fatalf("expected q search to show qrcode endpoint, got %q", view)
 	}
 }
 
